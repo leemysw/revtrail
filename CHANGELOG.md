@@ -4,6 +4,16 @@ User-facing changes, newest first. Each release has the same notes in English an
 
 ## Unreleased
 
+## [0.1.3] - 2026-11-18
+
+### English
+
+- Windows nobody can see on macOS, such as background project tabs, minimized or covered windows, give back most of the memory they drew with.
+
+### 简体中文
+
+- macOS 上看不见的窗口（后台项目标签、最小化或被遮住的窗口）会释放绘制占用的大部分内存。
+
 ## [0.1.2] - 2026-11-18
 
 ### English
