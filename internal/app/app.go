@@ -1,0 +1,1523 @@
+// INPUT: config、workspace、langserver、git 等子包与平台 Desktop 端口。
+// OUTPUT: App 状态本体（文档、编辑器组、树、语言服务器槽位）及打开 / 关闭工作区、建编辑器等核心操作。
+// POS: internal/app 的中心：其他文件都是挂在 *App 上的功能切片。
+// PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
+
+package app
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"io/fs"
+	"log"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"slices"
+	"strings"
+	"sync"
+	"time"
+
+	"github.com/egoist/mygo/ui"
+	"github.com/egoist/mygo/ui/editor"
+	"github.com/egoist/mygo/ui/markdown"
+
+	"revtrail/internal/config"
+	"revtrail/internal/git"
+	"revtrail/internal/langserver"
+	"revtrail/internal/languages"
+	"revtrail/internal/logs"
+	"revtrail/internal/lsp"
+	"revtrail/internal/nav"
+	"revtrail/internal/platform"
+	"revtrail/internal/syntax"
+	"revtrail/internal/uri"
+	"revtrail/internal/workspace"
+	"revtrail/locales"
+)
+
+type langKind uint8
+
+const (
+	langGo langKind = iota
+	langTS
+	langClang
+	langCMake
+	langCount
+)
+
+type langSlot struct {
+	server *langserver.Server
+	state  langserver.State
+	err    error
+	epoch  uint64
+}
+
+// App is the reader's state. It lives on the UI thread: background work
+// hands its results back through post, which runs them there.
+type App struct {
+	post         platform.Scheduler // runs fn on the UI thread, then redraws
+	host         platform.Desktop   // the window and the desktop around it
+	windowWidth  int
+	windowHeight int
+	startLSP     func(logf func(string, ...any)) langserver.Starter
+	cfg          *config.Config
+	logf         func(string, ...any)
+
+	// The workspace.
+	root       string // as the user opened it
+	realRoot   string // with symlinks resolved, as servers may report it
+	gen        int    // bumped when the workspace changes; late results of an old one are dropped
+	background bool   // another window or app is in front: the periodic Git refresh waits
+	wsCtx      context.Context
+	wsCancel   context.CancelFunc
+	dirs       map[string]*dirState
+	tree       ui.OutlineState[string]
+	treeRow    int
+	treeSel    ui.Selection[string] // the items chosen in the tree
+	treeAnchor string               // the item a Shift-click chooses from
+	cutFiles   []string             // the files Cut put on the clipboard, which Paste moves
+	reveal     string               // a path to choose in the tree once its row shows
+	filter     treeFilter
+	watchErr   error
+	watching   bool
+	ignored    *git.Ignored // what git ignores in the workspace, dimmed in the tree and not watched
+	git        gitState
+
+	// Documents, by path, and the editor groups showing them.
+	docs             map[string]*doc
+	layout           *layout
+	focus            *group
+	focusGroupTarget *group
+	nextGroup        int
+	focusEditor      *editor.State // an editor to give the keyboard to
+	focusImage       string        // an image preview to give the keyboard to once loaded
+
+	// Navigation.
+	hist         nav.History
+	navSeq       uint64 // bumped by every navigation the user asks for
+	navCancel    context.CancelFunc
+	finding      bool // a navigation request is on its way
+	findingLabel string
+	choices      *defChoices // several definitions to choose from
+
+	langs          [langCount]langSlot
+	serverJob      bool
+	serverJobName  string // the tool an installation or a removal is of
+	serverJobErr   string
+	trustDismissed bool
+	trustAsk       bool   // asking whether to trust the workspace
+	afterTrust     func() // what to do once trusted
+	notice         string // the last message for the user
+	noticeError    bool
+	noticeActions  []action
+
+	hover         hoverState
+	task          *taskRun
+	taskList      ui.ListState
+	term          termPanel
+	logs          logs.Store
+	settings      settingsState
+	find          findState
+	structure     *structureView
+	problems      problemsState
+	quick         quickOpen
+	recent        []string // the files shown, most recently last, for Recent Files
+	confirm       *confirmation
+	actionConfirm *confirmation
+	createEntry   *entryPrompt
+	renameEntry   *renamePrompt
+	allowDirty    bool
+
+	navigator        int // the sidebar's navigator
+	sidebarOff       bool
+	avatars          map[string]*avatarEntry // authors' pictures, by email
+	services         ui.Services             // the window's clipboard and browser, for menus built without a context
+	projectPicker    projectPicker
+	branchHandle     ui.Handle // the toolbar's branch, under which the branch picker shows
+	welcomeNote      string
+	showWelcome      bool   // the welcome window over an open workspace
+	hasWelcome       bool   // this app owns the welcome window
+	version          string // the app's, shown on the welcome window
+	sidebarW         float32
+	idleSaveTimer    *time.Timer
+	idleSaveDelay    time.Duration
+	saveTimer        *time.Timer // a settings save waiting for changes to stop
+	restoringSession bool
+	theme            *ui.Theme
+	modifiers        ui.Modifiers // keyboard modifiers held this frame
+	edTheme          *editor.Theme
+	themeDark        bool
+	themeAccent      ui.Color
+}
+
+const (
+	navFiles = iota
+	_        // previous sidebar search, now a popup
+	navGit
+	navProblems
+	navStructure
+)
+
+// dirState is a directory of the tree: unread until opened.
+type dirState struct {
+	entries []workspace.Entry
+	loading bool
+	loaded  bool
+	err     error
+	seq     int
+}
+
+// doc is an open document, one per path, shared by the groups showing
+// it: its buffer and how loading it went.
+type doc struct {
+	path, uri, name string
+	untitled        bool
+	cache           *draftCache
+	saving          bool
+	buf             *editor.Buffer
+	image           *ui.Bitmap
+	markdownOptions *markdown.Options
+	markdownText    string
+	markdownVersion uint64
+	markdownCached  bool
+	// svg is the SVG preview of the text at svgVersion, svgErr why it is not.
+	svg        *ui.SVG
+	svgErr     error
+	svgVersion uint64
+	svgCached  bool
+	hex        *hexState
+	preview    *markdownPreview
+
+	loading           bool
+	err               error
+	kind              workspace.Kind
+	size              int64
+	plain             bool
+	gone              bool      // removed or moved away on disk
+	seq               int       // of the latest load, so a stale one is dropped
+	stamp             fileStamp // the file as last read, to skip reading it again
+	lossy             bool      // invalid UTF-8 shown with replacement characters
+	bom               bool
+	diskText          string
+	conflict          bool
+	lspVersion        uint64
+	diagnostics       []editor.Diagnostic
+	diagnosticVersion uint64
+	diagnosed         bool // a server sent diagnostics of the document, even none
+	gitBase           *editor.Buffer
+	gitChanges        *editor.DiffState
+	gitBaseSeq        uint64
+	gitBaseKey        gitBaseRevision // what the committed version was read for; see loadGitBase
+	blameOpen         bool
+	blameLoading      bool
+	blameErr          string
+	blameSeq          uint64
+	blameLines        map[int]git.BlameLine
+}
+
+type draftCache struct {
+	mu      sync.Mutex
+	version uint64
+	removed bool
+}
+
+// fileStamp tells whether a file changed since it was read.
+type fileStamp struct {
+	size    int64
+	modTime time.Time
+}
+
+// defChoices are the definitions a request found, to choose from.
+type defChoices struct {
+	g             *group
+	from          nav.Entry
+	enc           string
+	locs          []target
+	title         string
+	selected      int
+	previewEditor *editor.State
+	previewPath   string
+	buffers       map[string]*editor.Buffer
+	collapsed     map[string]bool
+}
+
+type target struct {
+	name         string
+	path         string
+	pos          lsp.Position
+	preview      []string
+	previewStart int
+	end          lsp.Position
+}
+
+func newApp(cfg *config.Config) *App {
+	a := &App{
+		cfg:      cfg,
+		docs:     map[string]*doc{},
+		dirs:     map[string]*dirState{},
+		post:     platform.SchedulerFunc(func(fn func()) { fn() }),
+		host:     platform.NoDesktop{},
+		startLSP: languages.StartGopls,
+		logf:     log.Printf,
+		treeRow:  -1,
+		sidebarW: 260,
+	}
+	if cfg.SidebarWidth >= 160 {
+		a.sidebarW = cfg.SidebarWidth
+	}
+	a.logf = func(format string, args ...any) {
+		message := fmt.Sprintf(format, args...)
+		a.logs.Add(slog.LevelInfo, "app", message)
+		log.Print(message)
+	}
+	a.tree.List.Selected = &a.treeRow
+	a.tree.List.Selection = &a.treeSel
+	a.resetLayout()
+	a.find.init()
+	return a
+}
+
+func uriOf(path string) string { return uri.FromPath(path) }
+
+// note shows a message in the activity view.
+func (a *App) note(msg string, isErr bool) {
+	a.notice, a.noticeError, a.noticeActions = msg, isErr, nil
+}
+
+// noteActions is a notice with actions to take on it, as an IntelliJ
+// notification's links. Taking one dismisses the notice.
+func (a *App) noteActions(msg string, actions ...action) {
+	a.note(msg, false)
+	a.noticeActions = actions
+}
+
+// activePath is the focused group's active document.
+func (a *App) activePath() string {
+	if isDiffTab(a.focus.active) {
+		return ""
+	}
+	return a.focus.active
+}
+
+// activeEditor is the editor of the focused group's active document.
+func (a *App) activeEditor() *editor.State {
+	if a.focus.markdownModes[a.focus.active] == markdownRendered {
+		return nil
+	}
+	return a.focus.eds[a.focus.active]
+}
+
+// ----- Workspace -----
+
+// openFolderDialog asks for a folder, off the UI thread, and opens it.
+func (a *App) openFolderDialog() {
+	pick := a.host.PickFolder
+	go func() {
+		p, err := pick("")
+		a.post.Post(func() {
+			switch {
+			case err != nil:
+				a.note(locales.MsgCouldNotShowTheFolderDialog()+err.Error(), true)
+			case p != "":
+				a.openProject(p)
+			}
+		})
+	}()
+}
+
+// openWorkspace closes the current workspace and opens dir: its first
+// level of entries loads in the background, and nothing else is read
+// until the user opens it.
+func (a *App) openWorkspace(dir string) {
+	root, err := workspace.CanonicalRoot(dir)
+	if err != nil {
+		a.welcomeNote = fmt.Sprintf("Could not open %s: %v", dir, describeErr(err))
+		if errors.Is(err, fs.ErrNotExist) && slices.Contains(a.cfg.Recent, dir) {
+			a.cfg.RemoveRecent(dir)
+			a.saveConfig()
+		}
+		return
+	}
+	if m := a.git.merge; m != nil {
+		a.leaveMerge(m, func() { a.openWorkspace(root) })
+		return
+	}
+	if a.guardClose(a.dirtyDocs(), func() { a.openWorkspace(root) }) {
+		return
+	}
+	a.closeWorkspace()
+	a.root = root
+	a.realRoot = root
+	a.tree.Open.Add(root) // the root node shows its entries, as IntelliJ's
+	if r, err := filepath.EvalSymlinks(root); err == nil {
+		a.realRoot = r
+	}
+	a.welcomeNote = ""
+	a.showWelcome = false
+	a.wsCtx, a.wsCancel = context.WithCancel(context.Background())
+	gen := a.gen
+	diag := a.diagnosticsHandler(gen)
+	a.langs[langGo].server = langserver.New(langserver.Options{
+		Name:          "gopls",
+		Root:          root,
+		Start:         a.startLSP(a.serverLog("gopls")),
+		OnState:       a.serverStateCallback(langGo, "gopls", gen, a.langs[langGo].epoch),
+		OnDiagnostics: diag,
+		Logf:          a.serverLog("gopls"),
+	})
+	a.resetTypeScriptServer()
+	a.langs[langClang].server = languages.NewClangdServer(root, a.serverStateCallback(langClang, "clangd", gen, a.langs[langClang].epoch), diag, a.serverLog("clangd"))
+	a.langs[langCMake].server = languages.NewCMakeServer(root, a.serverStateCallback(langCMake, "cmake-language-server", gen, a.langs[langCMake].epoch), diag, a.serverLog("cmake-language-server"))
+	a.loadDir(root)
+	a.startWatch()
+	a.restoreSession()
+	a.startGit()
+	a.windowWidth, a.windowHeight = config.WorkspaceSize(a.cfg.Workspaces[root])
+	a.host.SetWorkspaceSize(a.windowWidth, a.windowHeight)
+	a.cfg.LastWorkspace = root
+	a.cfg.AddRecent(root)
+	a.saveConfig()
+	a.host.SetTitle(filepath.Base(root))
+}
+
+// closeWorkspace forgets the workspace: its tabs, caches, searches, watch
+// and language server.
+func (a *App) closeWorkspace() {
+	a.stopIdleSave()
+	a.createEntry = nil
+	a.renameEntry = nil
+	a.actionConfirm = nil
+	if a.root != "" {
+		a.saveConfig()
+	}
+	a.gen++
+	if a.wsCancel != nil {
+		a.wsCancel()
+	}
+	a.cancelNav()
+	a.stopGoTask()
+	a.task = nil
+	a.taskList = ui.ListState{}
+	a.closeTerminals()
+	for i := range a.langs {
+		sl := &a.langs[i]
+		if sl.server != nil {
+			sl.server.Stop()
+			sl.server = nil
+		}
+		sl.state, sl.err = langserver.Off, nil
+		sl.epoch++
+	}
+	a.root, a.realRoot = "", ""
+	a.dirs = map[string]*dirState{}
+	a.tree = ui.OutlineState[string]{}
+	a.treeRow = -1
+	a.treeSel = ui.Selection[string]{}
+	a.tree.List.Selected = &a.treeRow
+	a.tree.List.Selection = &a.treeSel
+	a.reveal = ""
+	a.filter = treeFilter{}
+	a.docs = map[string]*doc{}
+	a.resetLayout()
+	a.hist.Clear()
+	a.choices = nil
+	a.trustAsk, a.afterTrust = false, nil
+	a.trustDismissed = false
+	a.watchErr, a.watching = nil, false
+	a.git.clearDeletions()
+	a.git = gitState{}
+	a.ignored = nil
+	a.notice = ""
+	a.hover = hoverState{}
+	a.find.reset()
+	a.quick = quickOpen{}
+	a.structure = nil
+	a.problems = problemsState{}
+	a.host.SetTitle("Revtrail")
+}
+
+// saveConfigSoon saves the settings once they stop changing for a
+// moment, as while the sidebar's divider is dragged.
+func (a *App) saveConfigSoon() {
+	if a.restoringSession {
+		return
+	}
+	if a.saveTimer != nil {
+		a.saveTimer.Stop()
+	}
+	a.saveTimer = time.AfterFunc(500*time.Millisecond, func() { a.post.Post(a.saveConfig) })
+}
+
+func (a *App) saveConfig() {
+	if a.saveTimer != nil {
+		a.saveTimer.Stop()
+		a.saveTimer = nil
+	}
+	if a.root != "" && !a.restoringSession {
+		a.captureSession()
+	}
+	if err := a.cfg.Save(); err != nil {
+		a.logf("saving settings: %v", err)
+	}
+}
+
+// loadDir reads a directory's entries in the background.
+func (a *App) loadDir(dir string) {
+	d := a.dirs[dir]
+	if d == nil {
+		d = &dirState{}
+		a.dirs[dir] = d
+	}
+	if d.loading {
+		return
+	}
+	d.loading = true
+	d.seq++
+	seq, gen, ctx := d.seq, a.gen, a.wsCtx
+	go func() {
+		es, err := workspace.ReadDir(ctx, dir)
+		a.post.Post(func() {
+			if a.gen != gen || a.dirs[dir] != d || d.seq != seq {
+				return
+			}
+			d.loading = false
+			if errors.Is(err, fs.ErrNotExist) && dir != a.root {
+				// Gone while nothing watched it, as a git-ignored folder:
+				// read the parent again, which drops its row.
+				a.removed(dir)
+				a.refreshDir(filepath.Dir(dir))
+				return
+			}
+			if err != nil {
+				d.err = err
+				return
+			}
+			d.entries, d.err, d.loaded = es, nil, true
+		})
+	}()
+}
+
+// children lists a tree item's children: nil for a file, an empty list
+// for a closed directory, and for an open one its entries, or a
+// placeholder while they load or when reading them failed. Opening a
+// directory is what reads it.
+func (a *App) children(p string) []string {
+	if a.filtering() {
+		return a.filter.tree[p]
+	}
+	if isPlaceholder(p) {
+		return nil
+	}
+	if e, ok := a.entry(p); p != a.root && (!ok || !e.Dir) {
+		return nil
+	}
+	d := a.dirs[p]
+	if !a.tree.Open.Has(p) {
+		if d != nil && d.loaded {
+			return a.entryPaths(d)
+		}
+		return []string{}
+	}
+	if d == nil || (!d.loaded && !d.loading && d.err == nil) {
+		a.loadDir(p)
+		d = a.dirs[p]
+	}
+	if !d.loaded {
+		if d.err != nil {
+			return a.withEntryPrompt(p, []string{p + errorSuffix})
+		}
+		return a.withEntryPrompt(p, []string{p + loadingSuffix})
+	}
+	out := a.entryPaths(d)
+	if d.err != nil {
+		out = append(out, p+errorSuffix) // a refresh failed: keep the old list
+	}
+	return a.withEntryPrompt(p, out)
+}
+
+func (a *App) entryPaths(d *dirState) []string {
+	out := make([]string, 0, len(d.entries))
+	for _, e := range d.entries {
+		if !a.hiddenPath(e.Path) {
+			out = append(out, e.Path)
+		}
+	}
+	return out
+}
+
+func (a *App) hiddenPath(p string) bool {
+	if !filepath.IsAbs(p) {
+		p = filepath.Join(a.root, p)
+	}
+	rel, err := filepath.Rel(a.root, p)
+	if err != nil {
+		return false
+	}
+	if a.cfg == nil {
+		return false
+	}
+	for _, part := range strings.Split(filepath.ToSlash(rel), "/") {
+		for _, name := range strings.Split(a.cfg.HiddenNames, ",") {
+			if name = strings.TrimSpace(name); name != "" && part == name {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+const (
+	loadingSuffix = "\x00loading"
+	errorSuffix   = "\x00error"
+	entrySuffix   = "\x00new-entry"
+)
+
+func isPlaceholder(p string) bool {
+	return strings.HasSuffix(p, loadingSuffix) || strings.HasSuffix(p, errorSuffix) || strings.HasSuffix(p, entrySuffix)
+}
+
+// entry finds the tree entry of a path in its loaded parent.
+func (a *App) entry(p string) (workspace.Entry, bool) {
+	d := a.dirs[filepath.Dir(p)]
+	if d == nil {
+		return workspace.Entry{}, false
+	}
+	for _, e := range d.entries {
+		if e.Path == p {
+			return e, true
+		}
+	}
+	return workspace.Entry{}, false
+}
+
+// retryDir reads a directory that failed to read, again; one the state
+// of which is gone by now is read afresh.
+func (a *App) retryDir(dir string) {
+	if d := a.dirs[dir]; d != nil {
+		d.loading = false
+	}
+	a.loadDir(dir)
+}
+
+// refreshDir reads a loaded directory again, as after a change on disk.
+func (a *App) refreshDir(dir string) {
+	if d := a.dirs[dir]; d != nil && (d.loaded || d.err != nil) {
+		d.loading = false
+		a.loadDir(dir)
+	}
+}
+
+// refreshAll reads every loaded directory and open document again, for
+// when watching is not possible.
+func (a *App) refreshAll() {
+	a.refreshGit()
+	a.invalidateHover()
+	for dir := range a.dirs {
+		a.refreshDir(dir)
+	}
+	for _, d := range a.docs {
+		if !d.untitled {
+			a.reloadDoc(d)
+		}
+	}
+	a.quick.files = nil // listed again when next opened
+	a.filter.forQuery, a.filter.tree, a.filter.roots = "", nil, nil
+}
+
+// revealInTree opens the directories above p and chooses its row.
+func (a *App) revealInTree(p string) {
+	if a.root == "" || !workspace.Within(a.root, p) || p == a.root {
+		return
+	}
+	for dir := filepath.Dir(p); workspace.Within(a.root, dir); dir = filepath.Dir(dir) {
+		a.tree.Open.Add(dir)
+		if dir == a.root {
+			break
+		}
+	}
+	a.reveal = p
+}
+
+// ----- Documents -----
+
+// openFile shows the document of path in the focused group, opening it
+// if needed, at pos when given.
+func (a *App) openFile(path string, pos *editor.Pos) *doc {
+	return a.openIn(a.focus, path, goTo{pos: pos})
+}
+
+// openIn shows path in g, at the place to says, if any.
+func (a *App) openIn(g *group, path string, to goTo) *doc {
+	if a.root == "" && len(a.docs) == 0 {
+		a.host.SetWorkspaceSize(config.DefaultWindowWidth, config.DefaultWindowHeight)
+	}
+	a.term.maximized = false
+	a.git.diffSeq++
+	a.git.peek = nil
+	path = workspace.DocPath(a.root, a.realRoot, path)
+	d := a.docs[path]
+	if d == nil {
+		d = &doc{path: path, uri: uriOf(path), name: filepath.Base(path)}
+		a.docs[path] = d
+		a.loadDoc(d)
+	}
+	if !g.has(path) {
+		// Open to the right of the active tab, as Xcode and VS Code do.
+		at := len(g.order)
+		if i := slices.Index(g.order, g.active); i >= 0 {
+			at = i + 1
+		}
+		g.addTab(path, at)
+	}
+	if to.pos != nil || to.lsp != nil {
+		delete(g.markdownModes, path)
+		g.pending[path] = to
+	}
+	a.activateIn(g, path)
+	a.showLoaded(g, d)
+	return d
+}
+
+// closeDoc closes a tab of the focused group.
+func (a *App) closeDoc(path string) { a.closeTab(a.focus, path) }
+
+// showLoaded gives g an editor of d once d's text is there, and goes
+// where g was asked to go in it.
+func (a *App) showLoaded(g *group, d *doc) {
+	if d.buf == nil || !g.has(d.path) {
+		return
+	}
+	st := g.eds[d.path]
+	if st == nil {
+		st = a.newEditor(g, d)
+		g.eds[d.path] = st
+		if m := a.serverFor(d.path); m != nil && !a.cfg.IsTrusted(a.root) && !a.trustDismissed {
+			a.trustAsk = true
+		}
+		if m := a.serverFor(d.path); m != nil && a.cfg.IsTrusted(a.root) {
+			ctx := a.wsCtx
+			snap, docURI := d.buf.Snapshot(), d.uri
+			go a.openLanguageDocument(m, ctx, d, docURI, snap)
+		}
+	}
+	to, ok := g.pending[d.path]
+	if !ok {
+		return
+	}
+	delete(g.pending, d.path)
+	var p editor.Pos
+	switch {
+	case to.lsp != nil:
+		line := min(max(to.lsp.Line, 0), d.buf.LineCount()-1)
+		p = editor.Pos{Line: line, Col: lsp.ColumnFromLSP(d.buf.Line(line), to.lsp.Character, to.enc)}
+	case to.pos != nil:
+		p = clampPos(d.buf, *to.pos)
+	default:
+		return
+	}
+	st.GoTo(p)
+	if to.selLen > 0 {
+		off := d.buf.Offset(p)
+		st.Select(off, min(off+to.selLen, d.buf.Len()))
+	}
+	if g == a.focus {
+		a.focusEditor = st
+	}
+}
+
+// loadDoc reads a document's file in the background.
+func (a *App) loadDoc(d *doc) {
+	d.loading, d.err = true, nil
+	d.seq++
+	seq, gen := d.seq, a.gen
+	lossy, needBuf, stamp, untitled := d.lossy, d.buf == nil, d.stamp, d.untitled
+	path, root, name := d.path, a.root, d.name
+	var snap editor.Snapshot
+	if !needBuf {
+		snap = d.buf.Snapshot() // cheap: a version of the rope
+	}
+	go func() {
+		if !needBuf {
+			// A reload: skip files whose size and time are as they were,
+			// without reading them.
+			if fi, err := os.Stat(path); err == nil && (fileStamp{fi.Size(), fi.ModTime()}) == stamp {
+				a.post.Post(func() {
+					if a.gen == gen && a.docs[d.path] == d && d.seq == seq {
+						d.loading, d.gone, d.err = false, false, nil
+					}
+				})
+				return
+			}
+		}
+		f, err := workspace.ReadFile(path)
+		var recovery *recoveryRecord
+		if needBuf && !untitled {
+			recovery = readRecovery(root, path)
+		}
+		var picture *ui.Bitmap
+		if err == nil && f.Kind != workspace.TooLarge && isImagePath(path) {
+			picture, err = readImage(path)
+		}
+		var buf *editor.Buffer
+		if err == nil && f.Kind == workspace.BadEncoding && lossy {
+			f = readLossy(path, f)
+		}
+		if err == nil && picture == nil && f.Kind == workspace.Text && needBuf {
+			// Build the buffer here, off the UI thread: it is safe from
+			// any goroutine, and a big file takes a while.
+			buf = editor.NewBuffer(f.Text)
+			if untitled && f.Text != "" {
+				buf = editor.NewBuffer("")
+				buf.Set(f.Text)
+			}
+			if !f.Plain {
+				buf.SetLanguage(syntax.For(name))
+			}
+		}
+		// Compare with what is shown here, off the UI thread, so the UI
+		// thread replaces the text only when it changed.
+		same := err == nil && f.Kind == workspace.Text && !needBuf && snapEquals(snap, f.Text)
+		a.post.Post(func() {
+			if a.gen != gen || a.docs[d.path] != d || d.seq != seq {
+				return
+			}
+			if d.buf != nil && d.buf.Version() != snap.Version() {
+				d.loading = false
+				a.reloadDoc(d)
+				return
+			}
+			if picture != nil {
+				f.Kind = workspace.Binary
+			}
+			if recovery != nil && err == nil && f.Kind == workspace.Text && recovery.Text == f.Text {
+				a.removeRecovery(d)
+				recovery = nil
+			}
+			if recovery != nil && (err == nil && f.Kind == workspace.Text || errors.Is(err, fs.ErrNotExist)) {
+				if err != nil {
+					f = workspace.File{Kind: workspace.Text, Text: recovery.Base, BOM: recovery.BOM}
+					buf = editor.NewBuffer(f.Text)
+				}
+				if recovery.Text != f.Text || err != nil {
+					buf.Set(recovery.Text)
+				}
+				a.loaded(d, f, buf, false, nil)
+				d.diskText, d.bom = recovery.Base, recovery.BOM
+				d.conflict = err == nil && (f.Text != recovery.Base || f.BOM != recovery.BOM)
+				d.gone = errors.Is(err, fs.ErrNotExist)
+			} else {
+				a.loaded(d, f, buf, same, err)
+			}
+			if err == nil && (d.buf == nil || !d.buf.Modified()) {
+				d.hex = nil
+				d.image = picture
+			}
+		})
+	}()
+}
+
+// loaded takes a document's file as read.
+func (a *App) loaded(d *doc, f workspace.File, buf *editor.Buffer, same bool, err error) {
+	d.loading = false
+	if err != nil {
+		if errors.Is(err, fs.ErrNotExist) && d.buf != nil {
+			d.gone = true // keep showing what it was
+			return
+		}
+		d.err = err
+		return
+	}
+	if d.buf != nil && d.buf.Modified() {
+		if f.Kind != workspace.Text || f.Text != d.diskText || f.BOM != d.bom {
+			d.conflict = true
+		}
+		return
+	}
+	d.err, d.gone, d.conflict = nil, false, false
+	d.bom, d.diskText = f.BOM, f.Text
+	d.kind, d.size, d.plain = f.Kind, f.Size, f.Plain
+	d.stamp = fileStamp{f.Size, f.ModTime}
+	if f.Kind != workspace.Text {
+		return
+	}
+	if d.buf == nil {
+		d.buf = buf
+	} else if !same {
+		// Changed on disk: show the new text, each editor keeping its
+		// place.
+		type place struct {
+			pos editor.Pos
+			y   float64
+		}
+		places := map[*editor.State]place{}
+		for _, g := range a.groups() {
+			if st := g.eds[d.path]; st != nil {
+				places[st] = place{st.CursorPos(), st.ScrollY()}
+			}
+		}
+		d.buf.Reset(f.Text)
+		if !f.Plain && d.buf.Language() == nil {
+			d.buf.SetLanguage(syntax.For(d.name))
+		}
+		for st, p := range places {
+			st.GoTo(clampPos(d.buf, p.pos))
+			st.SetScrollY(p.y)
+		}
+		if m := a.serverFor(d.path); m != nil {
+			m.Changed(d.uri, d.buf.Snapshot())
+		}
+	}
+	for _, g := range a.groups() {
+		a.showLoaded(g, d)
+	}
+}
+
+// snapEquals reports whether a snapshot holds text, a chunk at a time,
+// without copying the snapshot into a string.
+func snapEquals(s editor.Snapshot, text string) bool {
+	if s.Len() != len(text) {
+		return false
+	}
+	off, eq := 0, true
+	s.Chunks(0, s.Len(), func(chunk string) bool {
+		if text[off:off+len(chunk)] != chunk {
+			eq = false
+			return false
+		}
+		off += len(chunk)
+		return true
+	})
+	return eq
+}
+
+// readLossy reads a file that is not valid UTF-8 with its invalid bytes
+// shown as replacement characters. UTF-16 stays unsupported.
+func readLossy(path string, f workspace.File) workspace.File {
+	data, err := os.ReadFile(path)
+	if err != nil || len(data) > workspace.MaxSize || bytes.HasPrefix(data, []byte{0xff, 0xfe}) || bytes.HasPrefix(data, []byte{0xfe, 0xff}) {
+		return f
+	}
+	f.Text, f.Kind = strings.ToValidUTF8(string(data), "�"), workspace.Text
+	f.Plain = len(data) > workspace.PlainLimit
+	return f
+}
+
+// reloadDoc reads an open document's file again.
+func (a *App) reloadDoc(d *doc) {
+	if !d.loading {
+		a.loadDoc(d)
+	}
+}
+
+func clampPos(b *editor.Buffer, p editor.Pos) editor.Pos {
+	if p.Line >= b.LineCount() {
+		p.Line = max(0, b.LineCount()-1)
+	}
+	if p.Line < 0 {
+		p.Line = 0
+	}
+	p.Col = min(max(p.Col, 0), len(b.Line(p.Line)))
+	return p
+}
+
+// newEditor makes an editor of a document in a group.
+func (a *App) newEditor(g *group, d *doc) *editor.State {
+	a.loadGitBase(d)
+	st := &editor.State{
+		Buffer:   d.buf,
+		ReadOnly: d.lossy,
+		Label:    d.name,
+		Bindings: editorBindings(),
+		Theme:    a.edTheme,
+		DiffBase: d.gitBase,
+	}
+	a.applyEditorPrefs(st)
+	if d.buf.Version() == d.diagnosticVersion {
+		st.SetDiagnostics(d.diagnosticVersion, d.diagnostics)
+	}
+	st.OnDefinition = func(offset int) { a.goToDefinition(g, d, offset) }
+	st.ContextMenu = func(menu *ui.Menu) { a.editorMenu(menu, g, d, st) }
+	st.OnHover = func(r editor.HoverRequest) { a.hoverAt(d, st, r) }
+	st.RenderHover = a.renderHover
+	return st
+}
+
+// ----- Navigation -----
+
+// cancelNav makes the navigation on its way, if any, stale.
+func (a *App) cancelNav() {
+	a.navSeq++
+	if a.navCancel != nil {
+		a.navCancel()
+		a.navCancel = nil
+	}
+	a.finding = false
+	a.choices = nil
+}
+
+// here is the reading position of the focused group's document.
+func (a *App) here() (nav.Entry, bool) {
+	path := a.activePath()
+	if path == "" {
+		return nav.Entry{}, false
+	}
+	st := a.activeEditor()
+	if st == nil {
+		return nav.Entry{Path: path}, true
+	}
+	p := st.CursorPos()
+	return nav.Entry{Path: path, Line: p.Line, ByteColumn: p.Col}, true
+}
+
+// userOpen opens a file because the user asked, as from the tree.
+func (a *App) userOpen(path string) {
+	a.cancelNav()
+	a.openFile(path, nil)
+	a.focusImage = ""
+	if isImagePath(a.activePath()) {
+		a.focusImage = a.activePath()
+	}
+	if st := a.activeEditor(); st != nil {
+		a.focusEditor = st
+	}
+}
+
+func (a *App) previewOpen(path string) {
+	g := a.focus
+	path = workspace.DocPath(a.root, a.realRoot, path)
+	if g.has(path) {
+		a.userActivateIn(g, path)
+		a.focusImage = ""
+		return
+	}
+	old := g.preview
+	if d := a.docs[old]; d != nil && d.buf != nil && d.buf.Modified() {
+		g.preview, old = "", ""
+	}
+	at := slices.Index(g.order, old)
+	a.userOpen(path)
+	a.focusImage = "" // a single-click preview keeps focus in the tree
+	if old != "" {
+		a.closeTab(g, old)
+		g.addTab(path, at)
+	}
+	g.preview = path
+}
+
+// userActivate switches tabs of the focused group because the user asked.
+func (a *App) userActivate(path string) { a.userActivateIn(a.focus, path) }
+
+func (a *App) userActivateIn(g *group, path string) {
+	a.term.maximized = false
+	a.git.diffSeq++
+	a.git.peek = nil
+	if path == g.active && g == a.focus {
+		return
+	}
+	a.cancelNav()
+	a.activateIn(g, path)
+	a.focusImage = ""
+	if isImagePath(path) {
+		a.focusImage = path
+	}
+	if st := g.eds[path]; st != nil {
+		a.focusEditor = st
+	}
+}
+
+func (a *App) goBack() {
+	cur, ok := a.here()
+	if !ok {
+		return
+	}
+	if to, ok := a.hist.GoBack(cur); ok {
+		a.cancelNav()
+		a.openFile(to.Path, &editor.Pos{Line: to.Line, Col: to.ByteColumn})
+	}
+}
+
+func (a *App) goForward() {
+	cur, ok := a.here()
+	if !ok {
+		return
+	}
+	if to, ok := a.hist.GoForward(cur); ok {
+		a.cancelNav()
+		a.openFile(to.Path, &editor.Pos{Line: to.Line, Col: to.ByteColumn})
+	}
+}
+
+// cycleTab activates the tab dir places to the right (1) or left (-1)
+// in the focused group.
+func (a *App) activateTabNumber(n int) {
+	g := a.focus
+	if g == nil || n < 1 || len(g.order) == 0 {
+		return
+	}
+	i := n - 1
+	if n == 9 {
+		i = len(g.order) - 1
+	}
+	if i < len(g.order) {
+		a.userActivate(g.order[i])
+	}
+}
+
+func (a *App) cycleTab(dir int) {
+	g := a.focus
+	if len(g.order) < 2 {
+		return
+	}
+	i := slices.Index(g.order, g.active)
+	a.userActivate(g.order[(i+dir+len(g.order))%len(g.order)])
+}
+
+// goToDefinition asks the language server where the symbol at offset of d is defined
+// and goes there, in g. Only the latest navigation the user asked for
+// wins: a response to an older one is dropped.
+func (a *App) goToDefinition(g *group, d *doc, offset int) {
+	if d.buf == nil {
+		return
+	}
+	a.focus = g
+	m := a.serverFor(d.path)
+	if m == nil {
+		a.note(locales.MsgNoLanguageServerIsConfiguredForThisFile(), false)
+		return
+	}
+	if !a.cfg.IsTrusted(a.root) {
+		a.trustAsk = true
+		a.afterTrust = func() { a.goToDefinition(g, d, offset) }
+		return
+	}
+	a.cancelNav()
+	a.hideLink()
+	snap := d.buf.Snapshot()
+	pos := snap.Pos(offset)
+	from := nav.Entry{Path: d.path, Line: pos.Line, ByteColumn: pos.Col}
+	line := snap.Line(pos.Line)
+	seq, gen := a.navSeq, a.gen
+	ctx, cancel := context.WithTimeout(a.wsCtx, 20*time.Second)
+	a.navCancel = cancel
+	a.finding = true
+	a.findingLabel = "Finding definition…"
+	a.notice = ""
+	go func() {
+		defer cancel()
+		locs, enc, err := definition(ctx, m, d.uri, snap, pos, line)
+		targets, skipped := targetsOf(locs)
+		a.post.Post(func() {
+			if a.gen != gen || a.navSeq != seq {
+				return // the user has moved on
+			}
+			a.finding = false
+			a.navCancel = nil
+			a.definitionFound(g, from, targets, enc, skipped, err)
+		})
+	}()
+}
+
+func targetsOf(locs []lsp.Location) (targets []target, skipped int) {
+	for _, l := range locs {
+		p, err := uri.ToPath(l.URI)
+		if err != nil {
+			skipped++
+			continue
+		}
+		targets = append(targets, target{name: l.Name, path: p, pos: l.Range.Start, end: l.Range.End})
+	}
+	return targets, skipped
+}
+
+func definition(ctx context.Context, m *langserver.Server, docURI string, snap editor.Snapshot, pos editor.Pos, line string) ([]lsp.Location, string, error) {
+	c, err := m.Get(ctx)
+	if err != nil {
+		return nil, "", err
+	}
+	if err := m.Sync(ctx, c, docURI, snap); err != nil {
+		return nil, "", err
+	}
+	enc := c.Encoding()
+	locs, err := c.Definition(ctx, docURI, lsp.Position{Line: pos.Line, Character: lsp.ColumnToLSP(line, pos.Col, enc)})
+	return locs, enc, err
+}
+
+func (a *App) definitionFound(g *group, from nav.Entry, targets []target, enc string, skipped int, err error) {
+	switch {
+	case err != nil:
+		a.lspFailure(err)
+	case len(targets) == 0 && skipped > 0:
+		a.note(locales.MsgTheDefinitionIsInAPlaceThatIs(), false)
+	case len(targets) == 0:
+		a.note(locales.MsgNoDefinitionFound(), false)
+	case len(targets) == 1:
+		a.jump(g, from, targets[0], enc)
+	default:
+		a.choices = &defChoices{g: g, from: from, enc: enc, locs: targets, title: "definitions"}
+		a.git.peek = nil
+		a.loadRelatedPreviews(a.choices)
+	}
+}
+
+// lspFailure reports why a language server request failed.
+func (a *App) lspFailure(err error) {
+	switch {
+	case errors.Is(err, languages.ErrNoGopls):
+		a.note(locales.MsgGoToDefinitionNeedsGoplsInstallItWith(), true)
+	case errors.Is(err, languages.ErrNoCMakeServer):
+		a.note(locales.MsgInstallCmakeLanguageServerAndMakeItAvailable(), true)
+	case errors.Is(err, languages.ErrNoClangd):
+		a.note(locales.MsgInstallClangdAndMakeItAvailableOnPATH(), true)
+	case errors.Is(err, languages.ErrNoTypeScriptServer):
+		a.note(locales.MsgInstallTheTypeScriptLanguageServerInSettingsThen(), true)
+	case errors.Is(err, context.DeadlineExceeded):
+		a.note(locales.MsgTheLanguageServerTookTooLongToAnswer(), true)
+	case errors.Is(err, context.Canceled):
+	default:
+		a.note(locales.MsgLanguageServerFailed()+err.Error(), true)
+	}
+}
+
+// jump goes to a definition in g, recording where it came from.
+func (a *App) jump(g *group, from nav.Entry, t target, enc string) {
+	a.choices = nil
+	a.hist.Push(from)
+	pos := t.pos
+	a.openIn(g, t.path, goTo{lsp: &pos, enc: enc})
+}
+
+// trust records that the user trusts the workspace to run language servers in.
+func (a *App) trust() {
+	a.cfg.Trust(a.root)
+	a.saveConfig()
+	a.trustAsk = false
+	a.openServerDocuments(nil)
+	if fn := a.afterTrust; fn != nil {
+		a.afterTrust = nil
+		fn()
+	}
+}
+
+func (a *App) serverStateCallback(kind langKind, name string, gen int, epoch uint64) func(langserver.State, error) {
+	return func(s langserver.State, err error) {
+		a.post.Post(func() {
+			if a.gen == gen && a.langs[kind].epoch == epoch {
+				a.langs[kind].state, a.langs[kind].err = s, err
+				a.serverStateLog(name, s, err)
+			}
+		})
+	}
+}
+
+func (a *App) retryServer(kind langKind) {
+	sl := &a.langs[kind]
+	if sl.server == nil {
+		return
+	}
+	a.invalidateHover()
+	sl.server.Retry()
+	sl.state, sl.err = sl.server.Status()
+	a.notice = ""
+	a.openServerDocuments(sl.server)
+}
+
+func (a *App) stopServersWait(timeout time.Duration) {
+	for i := range a.langs {
+		if a.langs[i].server != nil {
+			a.langs[i].server.StopWait(timeout)
+		}
+	}
+}
+
+func (a *App) allServers() []*langserver.Server {
+	servers := make([]*langserver.Server, 0, len(a.langs))
+	for i := range a.langs {
+		if a.langs[i].server != nil {
+			servers = append(servers, a.langs[i].server)
+		}
+	}
+	return servers
+}
+
+// describeErr phrases a file error for the user, without the path.
+func describeErr(err error) string {
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+		return "it does not exist"
+	case errors.Is(err, fs.ErrPermission):
+		return "permission denied"
+	case errors.Is(err, workspace.ErrNotDir):
+		return "it is not a folder"
+	case errors.Is(err, workspace.ErrNotRegular):
+		return "it is not a regular file"
+	}
+	var pe *fs.PathError
+	if errors.As(err, &pe) {
+		return pe.Err.Error()
+	}
+	return err.Error()
+}
+
+func (a *App) serverFor(path string) *langserver.Server {
+	switch {
+	case strings.EqualFold(filepath.Ext(path), ".go"):
+		return a.langs[langGo].server
+	case languages.TypeScriptLanguage(path) != "":
+		return a.langs[langTS].server
+	case languages.CMakeLanguage(path) != "":
+		return a.langs[langCMake].server
+	case languages.ClangLanguage(path) != "":
+		return a.langs[langClang].server
+	}
+	return nil
+}
+
+func (a *App) resetTypeScriptServer() {
+	sl := &a.langs[langTS]
+	sl.epoch++
+	sl.state, sl.err = langserver.Off, nil
+	sl.server = nil
+	if a.root == "" {
+		return
+	}
+	sl.server = languages.NewTypeScriptServer(
+		a.root,
+		languages.StartTypeScript(a.serverLog("tsrs")),
+		a.serverStateCallback(langTS, "tsrs", a.gen, sl.epoch),
+		a.diagnosticsHandler(a.gen),
+		a.serverLog("tsrs"),
+	)
+}
+
+func (a *App) openLanguageDocument(m *langserver.Server, ctx context.Context, d *doc, docURI string, snap editor.Snapshot) {
+	client, err := m.Get(ctx)
+	if err != nil {
+		return
+	}
+	if err = m.Sync(ctx, client, docURI, snap); err != nil {
+		return
+	}
+	a.post.Post(func() {
+		if d.uri == docURI && a.docs[d.path] == d && a.serverFor(d.path) == m && d.buf != nil && d.buf.Version() != snap.Version() {
+			m.Changed(docURI, d.buf.Snapshot())
+		}
+	})
+}
+
+func (a *App) openServerDocuments(only *langserver.Server) {
+	if a.wsCtx == nil || !a.cfg.IsTrusted(a.root) {
+		return
+	}
+	for _, d := range a.docs {
+		if d.buf == nil {
+			continue
+		}
+		m := a.serverFor(d.path)
+		if m == nil || (only != nil && only != m) {
+			continue
+		}
+		go a.openLanguageDocument(m, a.wsCtx, d, d.uri, d.buf.Snapshot())
+	}
+}
+
+// findUsages requests references or incoming calls for the focused symbol.
+func (a *App) findUsages(callers bool) {
+	g := a.focus
+	if g == nil {
+		return
+	}
+	a.findUsagesAt(callers, g.caretAnchor, true)
+}
+
+func (a *App) findUsagesAt(callers bool, anchor ui.Point, validAnchor bool) {
+	g := a.focus
+	if g == nil {
+		return
+	}
+	d := a.docs[g.active]
+	st := g.eds[g.active]
+	if d == nil || d.buf == nil || st == nil {
+		return
+	}
+	m := a.serverFor(d.path)
+	if m == nil {
+		a.note(locales.MsgNoLanguageServerIsConfiguredForThisFile(), false)
+		return
+	}
+	if !a.cfg.IsTrusted(a.root) {
+		a.trustAsk = true
+		a.afterTrust = func() { a.findUsagesAt(callers, anchor, validAnchor) }
+		return
+	}
+	a.term.maximized = false
+	a.cancelNav()
+	a.hideLink()
+	snap := d.buf.Snapshot()
+	pos := st.CursorPos()
+	from := nav.Entry{Path: d.path, Line: pos.Line, ByteColumn: pos.Col}
+	ctx, cancel := context.WithTimeout(a.wsCtx, 20*time.Second)
+	a.navCancel = cancel
+	a.finding = true
+	a.findingLabel = "Finding references…"
+	if callers {
+		a.findingLabel = "Finding callers…"
+	}
+	a.notice = ""
+	seq, gen := a.navSeq, a.gen
+	go func() {
+		defer cancel()
+		c, err := m.Get(ctx)
+		var locations []lsp.Location
+		enc := ""
+		if err == nil {
+			err = m.Sync(ctx, c, d.uri, snap)
+		}
+		if err == nil {
+			enc = c.Encoding()
+			at := lsp.Position{Line: pos.Line, Character: lsp.ColumnToLSP(snap.Line(pos.Line), pos.Col, enc)}
+			if callers {
+				if client, ok := c.(interface {
+					Callers(context.Context, string, lsp.Position) ([]lsp.Location, error)
+				}); ok {
+					locations, err = client.Callers(ctx, d.uri, at)
+				} else {
+					err = errors.New("this language server does not support finding callers")
+				}
+			} else {
+				if client, ok := c.(interface {
+					References(context.Context, string, lsp.Position) ([]lsp.Location, error)
+				}); ok {
+					locations, err = client.References(ctx, d.uri, at)
+				} else {
+					err = errors.New("this language server does not support references")
+				}
+			}
+		}
+		targets, skipped := targetsOf(locations)
+		a.post.Post(func() {
+			if a.gen != gen || a.navSeq != seq {
+				return
+			}
+			a.finding = false
+			a.navCancel = nil
+			if err != nil {
+				a.lspFailure(err)
+				return
+			}
+			name := "references"
+			if callers {
+				name = "callers"
+			}
+			if len(targets) == 0 {
+				if skipped > 0 {
+					a.note(locales.MsgResultsAreNotInLocalFiles(), false)
+				} else {
+					a.note("No "+name+locales.MsgFound(), false)
+				}
+				return
+			}
+			a.choices = &defChoices{g: g, from: from, enc: enc, locs: targets, title: name}
+			a.git.peek = nil
+			a.loadRelatedPreviews(a.choices)
+		})
+	}()
+}
+
+func (a *App) loadRelatedPreviews(ch *defChoices) {
+	// Snapshots preserve unsaved edits without reading editor state in a worker.
+	snapshots := make(map[string]editor.Snapshot)
+	for _, t := range ch.locs {
+		path := workspace.DocPath(a.root, a.realRoot, t.path)
+		if d := a.docs[path]; d != nil && d.buf != nil {
+			snapshots[t.path] = d.buf.Snapshot()
+		}
+	}
+	targets := slices.Clone(ch.locs)
+	ctx, gen := a.wsCtx, a.gen
+	go func() {
+		files := make(map[string][]string)
+		buffers := make(map[string]*editor.Buffer)
+		for i := range targets {
+			if ctx.Err() != nil {
+				return
+			}
+			t := &targets[i]
+			if snap, ok := snapshots[t.path]; ok {
+				if buffers[t.path] == nil {
+					buffers[t.path] = editor.NewBuffer(snap.String())
+					buffers[t.path].SetLanguage(syntax.For(t.path))
+				}
+				if t.pos.Line >= 0 && t.pos.Line < snap.LineCount() {
+					t.previewStart = max(0, t.pos.Line-2)
+					for line := t.previewStart; line < min(snap.LineCount(), t.pos.Line+3); line++ {
+						t.preview = append(t.preview, snap.Line(line))
+					}
+				}
+				continue
+			}
+			lines, ok := files[t.path]
+			if !ok {
+				if f, err := workspace.ReadFile(t.path); err == nil && f.Kind == workspace.Text {
+					lines = strings.Split(f.Text, "\n")
+					buffers[t.path] = editor.NewBuffer(f.Text)
+					buffers[t.path].SetLanguage(syntax.For(t.path))
+				}
+				files[t.path] = lines
+			}
+			if t.pos.Line >= 0 && t.pos.Line < len(lines) {
+				t.previewStart = max(0, t.pos.Line-2)
+				t.preview = slices.Clone(lines[t.previewStart:min(len(lines), t.pos.Line+3)])
+			}
+		}
+		a.post.Post(func() {
+			if a.gen == gen && a.choices == ch {
+				ch.locs = targets
+				ch.buffers = buffers
+				a.selectRelated(ch, ch.selected)
+			}
+		})
+	}()
+}
+
+func (a *App) selectRelated(ch *defChoices, index int) {
+	if index < 0 || index >= len(ch.locs) {
+		return
+	}
+	ch.selected = index
+	t := ch.locs[index]
+	buf := ch.buffers[t.path]
+	if buf == nil {
+		ch.previewEditor = nil
+		ch.previewPath = ""
+		return
+	}
+	if ch.previewEditor == nil || ch.previewPath != t.path {
+		label := "Reference code preview"
+		if ch.title == "definitions" {
+			label = "Definition code preview"
+		}
+		ch.previewEditor = &editor.State{Buffer: buf, ReadOnly: true, Label: label, Theme: a.edTheme}
+		a.applyEditorPrefs(ch.previewEditor)
+		ch.previewPath = t.path
+	}
+	line := min(max(t.pos.Line, 0), buf.LineCount()-1)
+	col := lsp.ColumnFromLSP(buf.Line(line), t.pos.Character, ch.enc)
+	ch.previewEditor.LineBackgrounds = []editor.LineBackground{{First: line, Last: line, Color: a.colors().Pill}}
+	ch.previewEditor.GoTo(editor.Pos{Line: line, Col: col})
+	if t.end.Line == t.pos.Line && t.end.Character > t.pos.Character {
+		end := lsp.ColumnFromLSP(buf.Line(line), t.end.Character, ch.enc)
+		ch.previewEditor.TextBackgrounds = []editor.TextBackground{{Start: buf.Offset(editor.Pos{Line: line, Col: col}), End: buf.Offset(editor.Pos{Line: line, Col: end}), Color: a.colors().Match}}
+	} else {
+		ch.previewEditor.TextBackgrounds = nil
+	}
+}
+
+func (a *App) openProject(path string) {
+	if a.root != "" && a.host.OpenProjectWindow(path) {
+		return
+	}
+	a.openWorkspace(path)
+}

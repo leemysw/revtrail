@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<defs>
+  <path id="tile" d="M356 101 C272 101 229 102 186 130 C175 137 164 146 155 155 C146 164 137 175 130 186 C102 229 101 272 101 356 L101 668 C101 752 102 795 130 838 C137 849 146 860 155 869 C164 878 175 887 186 894 C229 922 272 923 356 923 L668 923 C752 923 795 922 838 894 C849 887 860 878 869 869 C878 860 887 849 894 838 C922 795 923 752 923 668 L923 356 C923 272 922 229 894 186 C887 175 878 164 869 155 C860 146 849 137 838 130 C795 102 752 101 668 101 L356 101Z"/>
+  <linearGradient id="bg" gradientUnits="userSpaceOnUse" x1="0" y1="101" x2="0" y2="923"><stop stop-color="#FFA94D"/><stop offset="1" stop-color="#F2552C"/></linearGradient>
+  <linearGradient id="sheen" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#FFFFFF" stop-opacity=".2"/><stop offset=".5" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient>
+  <linearGradient id="ink" gradientUnits="userSpaceOnUse" x1="0" y1="200" x2="0" y2="830"><stop stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFEDE2"/></linearGradient>
+</defs>
+<use href="#tile" transform="translate(0 6)" fill="#000" opacity=".16"/>
+<use href="#tile" fill="url(#bg)"/>
+<g transform="translate(0 12)">
+    <path d="M316 230 V794" stroke="#A8300F" stroke-opacity=".28" stroke-width="50" stroke-linecap="round" fill="none"/>
+    <path d="M316 326 C316 396 492 376 492 446 V578 C492 648 316 628 316 698" stroke="#A8300F" stroke-opacity=".28" stroke-width="50" stroke-linecap="round" fill="none"/>
+    <circle cx="316" cy="326" r="52" fill="#A8300F" fill-opacity=".28"/><circle cx="492" cy="512" r="52" fill="#A8300F" fill-opacity=".28"/><circle cx="316" cy="698" r="52" fill="#A8300F" fill-opacity=".28"/>
+    <rect x="606" y="297" width="180" height="58" rx="29" fill="#A8300F" fill-opacity=".28"/><rect x="606" y="483" width="180" height="58" rx="29" fill="#A8300F" fill-opacity=".28"/><rect x="606" y="669" width="180" height="58" rx="29" fill="#A8300F" fill-opacity=".28"/>
+  </g>
+<g >
+    <path d="M316 230 V794" stroke="url(#ink)" stroke-width="50" stroke-linecap="round" fill="none"/>
+    <path d="M316 326 C316 396 492 376 492 446 V578 C492 648 316 628 316 698" stroke="url(#ink)" stroke-width="50" stroke-linecap="round" fill="none"/>
+    <circle cx="316" cy="326" r="66" fill="#fb9244"/><circle cx="316" cy="326" r="52" fill="url(#ink)"/><circle cx="492" cy="512" r="66" fill="#f97f3d"/><circle cx="492" cy="512" r="52" fill="url(#ink)"/><circle cx="316" cy="698" r="66" fill="#f66c35"/><circle cx="316" cy="698" r="52" fill="url(#ink)"/>
+    <rect x="606" y="297" width="180" height="58" rx="29" fill="url(#ink)"/><rect x="617" y="308" width="72" height="36" rx="18" fill="#3D7BFF"/><rect x="606" y="483" width="180" height="58" rx="29" fill="url(#ink)"/><rect x="617" y="494" width="60" height="36" rx="18" fill="#22B573"/><rect x="606" y="669" width="180" height="58" rx="29" fill="url(#ink)"/><rect x="617" y="680" width="88" height="36" rx="18" fill="#8B5CF6"/>
+  </g>
+<use href="#tile" fill="url(#sheen)"/>
+</svg>

@@ -1,0 +1,45 @@
+// INPUT: revtrail 命令行传入的路径。
+// OUTPUT: openCLIPath / revealCLIPath：打开文件夹或在已打开的窗口中定位文件。
+// POS: 命令行与 App 之间的落点。
+// PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
+
+package app
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+)
+
+// openCLIPath opens what the app was started with: a folder, or a file in
+// its folder.
+func (a *App) openCLIPath(path string) {
+	path, err := filepath.Abs(path)
+	if err != nil {
+		a.welcomeNote = fmt.Sprintf("Could not open %s: %v", path, describeErr(err))
+		return
+	}
+	fi, err := os.Stat(path)
+	if err != nil {
+		a.welcomeNote = fmt.Sprintf("Could not open %s: %v", path, describeErr(err))
+		return
+	}
+	if fi.IsDir() {
+		a.openWorkspace(path)
+		return
+	}
+	root := filepath.Dir(path)
+	a.openWorkspace(root)
+	if a.root == root {
+		a.openFile(path, nil)
+	}
+}
+
+// revealCLIPath brings what `revtrail` named forward in a window that has its
+// folder open: a file opens in a tab, the folder itself only shows.
+func (a *App) revealCLIPath(path string) {
+	a.showWelcome = false
+	if fi, err := os.Stat(path); err == nil && !fi.IsDir() {
+		a.openFile(path, nil)
+	}
+}

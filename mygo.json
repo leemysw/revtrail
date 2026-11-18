@@ -1,0 +1,36 @@
+{
+  "name": "Revtrail",
+  "identifier": "io.github.leemysw.revtrail",
+  "version": "0.1.0",
+  "out": "build",
+  "updates": {
+    "publicKey": "fnU53awlApOLA6EosoTqIpIQ08Kd1MWtRFRX2ITqKBI=",
+    "github": "leemysw/revtrail"
+  },
+  "macos": {
+    "infoPlist": {
+      "CFBundleDocumentTypes": [
+        {
+          "CFBundleTypeName": "Folder",
+          "CFBundleTypeRole": "Viewer",
+          "LSHandlerRank": "Alternate",
+          "LSItemContentTypes": [
+            "public.folder"
+          ]
+        },
+        {
+          "CFBundleTypeName": "File",
+          "CFBundleTypeRole": "Viewer",
+          "LSHandlerRank": "Alternate",
+          "CFBundleTypeExtensions": [
+            "*"
+          ]
+        }
+      ]
+    }
+  },
+  "i18n": {
+    "dir": "locales",
+    "source": "en"
+  }
+}

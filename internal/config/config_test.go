@@ -1,0 +1,153 @@
+package config
+
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
+
+func TestRoundTrip(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "sub", "config.json")
+	c := Load(p)
+	c.LastWorkspace = "/w"
+	c.Trust("/w")
+	c.AddRecent("/w")
+	if err := c.Save(); err != nil {
+		t.Fatal(err)
+	}
+	c2 := Load(p)
+	if c2.LastWorkspace != "/w" || !c2.IsTrusted("/w") || len(c2.Recent) != 1 {
+		t.Fatalf("loaded %+v", c2)
+	}
+}
+
+func TestHiddenNamesDefaultAndEmpty(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "config.json")
+	c := Load(p)
+	if c.HiddenNames != ".DS_Store" {
+		t.Fatalf("default hidden names = %q", c.HiddenNames)
+	}
+	c.HiddenNames = ""
+	if err := c.Save(); err != nil {
+		t.Fatal(err)
+	}
+	if got := Load(p).HiddenNames; got != "" {
+		t.Fatalf("empty hidden names did not persist: %q", got)
+	}
+}
+
+func TestBrokenFileGivesDefaults(t *testing.T) {
+	p := filepath.Join(t.TempDir(), "config.json")
+	if err := os.WriteFile(p, []byte("{broken"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	c := Load(p)
+	if c.LastWorkspace != "" || c.path != p {
+		t.Fatalf("loaded %+v", c)
+	}
+}
+
+func TestRecentFoldersStayCapped(t *testing.T) {
+	c := Load("")
+	for i := 0; i < MaxRecent+5; i++ {
+		c.AddRecent(filepath.Join("/w", string(rune('a'+i))))
+	}
+	if len(c.Recent) != MaxRecent {
+		t.Fatalf("len(Recent) = %d, want %d", len(c.Recent), MaxRecent)
+	}
+	moved := c.Recent[3]
+	c.AddRecent(moved)
+	if c.Recent[0] != moved {
+		t.Fatalf("Recent[0] = %q, want %q moved to the front", c.Recent[0], moved)
+	}
+	if len(c.Recent) != MaxRecent {
+		t.Fatalf("a folder moved, not added: len = %d", len(c.Recent))
+	}
+	c.ClearRecent()
+	if len(c.Recent) != 0 {
+		t.Fatalf("cleared: %v", c.Recent)
+	}
+}
+
+func TestDefaultsClampSettings(t *testing.T) {
+	c := Load("")
+	if c.EditorFontSize() != 13 || c.TerminalFontSize() != 12 || c.EditorPanelPct() != 66 {
+		t.Fatalf("defaults: %v %v %v", c.EditorFontSize(), c.TerminalFontSize(), c.EditorPanelPct())
+	}
+	c.FontSize, c.TermFontSize, c.PanelPct = 100, 1, 99
+	if c.EditorFontSize() != 13 || c.TerminalFontSize() != 12 || c.EditorPanelPct() != 66 {
+		t.Fatalf("clamped: %v %v %v", c.EditorFontSize(), c.TerminalFontSize(), c.EditorPanelPct())
+	}
+	c.FontSize, c.TermFontSize, c.PanelPct = 16, 14, 50
+	if c.EditorFontSize() != 16 || c.TerminalFontSize() != 14 || c.EditorPanelPct() != 50 {
+		t.Fatalf("kept: %v %v %v", c.EditorFontSize(), c.TerminalFontSize(), c.EditorPanelPct())
+	}
+}
+
+func TestWorkspaceSizeFallsBack(t *testing.T) {
+	if w, h := WorkspaceSize(Workspace{}); w != DefaultWindowWidth || h != DefaultWindowHeight {
+		t.Fatalf("empty: %d %d", w, h)
+	}
+	if w, h := WorkspaceSize(Workspace{WindowWidth: 100, WindowHeight: 9000}); w != DefaultWindowWidth || h != DefaultWindowHeight {
+		t.Fatalf("nonsense: %d %d", w, h)
+	}
+	if w, h := WorkspaceSize(Workspace{WindowWidth: 900, WindowHeight: 700}); w != 900 || h != 700 {
+		t.Fatalf("kept: %d %d", w, h)
+	}
+}
+
+func TestRecentHookRuns(t *testing.T) {
+	c := Load("")
+	ran := 0
+	c.SetRecentHook(func() { ran++ })
+	c.AddRecent("/w")
+	c.RemoveRecent("/w")
+	if ran == 0 {
+		t.Fatal("the hook never ran")
+	}
+}
+
+func TestFailedSavePreservesPreviousSettingsAndCanRetry(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config.json")
+	c := Load(path)
+	c.Trust("/original")
+	c.LastWorkspace = "/original"
+	if err := c.Save(); err != nil {
+		t.Fatal(err)
+	}
+	before, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Block the staging file without depending on platform permission behavior.
+	staging := path + ".tmp"
+	if err := os.Mkdir(staging, 0700); err != nil {
+		t.Fatal(err)
+	}
+	c.LastWorkspace = "/replacement"
+	c.Trust("/replacement")
+	if err := c.Save(); err == nil {
+		t.Fatal("save succeeded despite blocked staging path")
+	}
+	after, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(after) != string(before) {
+		t.Fatal("failed save changed the committed settings")
+	}
+	loaded := Load(path)
+	if loaded.LastWorkspace != "/original" || loaded.IsTrusted("/replacement") {
+		t.Fatalf("failed save leaked new settings: %+v", loaded)
+	}
+	if err := os.Remove(staging); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Save(); err != nil {
+		t.Fatal(err)
+	}
+	loaded = Load(path)
+	if loaded.LastWorkspace != "/replacement" || !loaded.IsTrusted("/original") || !loaded.IsTrusted("/replacement") {
+		t.Fatal("save could not recover after staging failure")
+	}
+}

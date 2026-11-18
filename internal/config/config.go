@@ -1,0 +1,231 @@
+// INPUT: appdir 下的 config.json。
+// OUTPUT: Config 全部设置项、Load / Save、信任与最近文件夹。
+// POS: 设置的唯一持久化处；新增设置项在这里加字段与默认值。
+// PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
+
+package config
+
+import (
+	"encoding/json"
+	"log"
+	"os"
+	"path/filepath"
+	"slices"
+
+	"revtrail/internal/appdir"
+)
+
+// Config is what the app remembers between runs.
+type SSHSession struct {
+	Destination string `json:"destination"`
+	Port        string `json:"port,omitempty"`
+}
+
+type ProjectGroup struct {
+	Roots    []string `json:"roots"`
+	Selected string   `json:"selected"`
+}
+
+type Config struct {
+	AIBaseURL            string               `json:"aiBaseURL,omitempty"`
+	AIModel              string               `json:"aiModel,omitempty"`
+	ProjectGroups        []ProjectGroup       `json:"projectGroups,omitempty"`
+	TerminalSSH          []SSHSession         `json:"terminalSSH,omitempty"`
+	LastWorkspace        string               `json:"lastWorkspace,omitempty"`
+	Recent               []string             `json:"recentWorkspaces,omitempty"` // newest first
+	ReopenLast           bool                 `json:"reopenLastWorkspace"`        // else the welcome window shows at launch
+	SidebarWidth         float32              `json:"sidebarWidth,omitempty"`
+	Appearance           string               `json:"appearance,omitempty"` // "light", "dark", or "" for the system's
+	Language             string               `json:"language,omitempty"`   // "system", or a language tag
+	Vibrancy             bool                 `json:"vibrancy,omitempty"`   // the window's material under the wash
+	Trusted              []string             `json:"trustedWorkspaces,omitempty"`
+	CustomUIFont         bool                 `json:"customUIFont,omitempty"`
+	UIFontFamily         string               `json:"uiFontFamily,omitempty"`
+	UIFontSize           float64              `json:"uiFontSize,omitempty"`
+	FontFamily           string               `json:"editorFontFamily,omitempty"`
+	TermFontFallback     string               `json:"terminalFontFallback,omitempty"`
+	TermFontFamily       string               `json:"terminalFontFamily,omitempty"`
+	ExternalTerminal     string               `json:"externalTerminal,omitempty"`
+	ExternalTerminalPath string               `json:"externalTerminalPath,omitempty"`
+	TermFontWeight       int                  `json:"terminalFontWeight,omitempty"`
+	TermLineHeight       float64              `json:"terminalLineHeight,omitempty"`
+	TermThicken          bool                 `json:"terminalFontSmoothing,omitempty"`
+	TermNoLigatures      bool                 `json:"terminalNoLigatures,omitempty"`
+	TermFontFeatures     []string             `json:"terminalFontFeatures,omitempty"`
+	TermCursor           string               `json:"terminalCursor,omitempty"` // "block", "bar", "underline"
+	TermCursorNoBlink    bool                 `json:"terminalCursorNoBlink,omitempty"`
+	TermOptionAsAlt      bool                 `json:"terminalOptionAsAlt,omitempty"`
+	TermRightClick       string               `json:"terminalRightClick,omitempty"` // "menu", "paste", "copyOrPaste"
+	TermClipboard        string               `json:"terminalClipboard,omitempty"`  // "ask", "allow", "deny"
+	TermScrollPrecision  float64              `json:"terminalScrollPrecision,omitempty"`
+	TermScrollDiscrete   float64              `json:"terminalScrollDiscrete,omitempty"`
+	TermMinContrast      float64              `json:"terminalMinContrast,omitempty"`
+	TermDimUnfocused     bool                 `json:"terminalDimUnfocused,omitempty"`
+	TermScrollback       int                  `json:"terminalScrollback,omitempty"`
+	TermEnv              []string             `json:"terminalEnv,omitempty"`
+	TermShell            string               `json:"terminalShell,omitempty"`
+	EditorFontWeight     int                  `json:"editorFontWeight,omitempty"`
+	EditorLineHeight     float64              `json:"editorLineHeight,omitempty"`
+	EditorNoLigatures    bool                 `json:"editorNoLigatures,omitempty"`
+	EditorFontFeatures   []string             `json:"editorFontFeatures,omitempty"`
+	EditorThicken        bool                 `json:"editorFontThicken,omitempty"`
+	FontSize             float64              `json:"editorFontSize,omitempty"`    // 13 when 0
+	LineNumbers          int                  `json:"editorLineNumbers,omitempty"` // 0 on, 1 relative, 2 off
+	SoftWrap             bool                 `json:"editorSoftWrap,omitempty"`
+	PreviewTab           bool                 `json:"previewTab,omitempty"`      // IntelliJ's Enable Preview Tab: a single click in the project tree previews a file
+	OpenSingleClick      bool                 `json:"openSingleClick,omitempty"` // IntelliJ's Open Files with Single Click
+	DiffUnified          bool                 `json:"diffUnified,omitempty"`     // diffs inline rather than side by side
+	DiffLayout           string               `json:"diffLayout,omitempty"`      // "auto", "unified", "split"
+	GitStatus            bool                 `json:"gitStatus"`
+	GitUpdateMode        string               `json:"gitUpdateMode,omitempty"`      // "", "ff-only", "merge", "rebase"
+	GitPerRootBranches   bool                 `json:"gitPerRootBranches,omitempty"` // off is IntelliJ's "Execute branch operations on all roots"
+	HiddenNames          string               `json:"hiddenNames"`
+	SaveOnDeactivate     bool                 `json:"saveOnDeactivate"`
+	SaveOnIdle           bool                 `json:"saveOnIdle"`
+	IdleSaveSeconds      float64              `json:"idleSaveSeconds,omitempty"`
+	ConfirmClose         bool                 `json:"confirmClose,omitempty"`
+	KeepAwake            string               `json:"keepAwake,omitempty"`
+	AppIcon              string               `json:"appIcon,omitempty"`
+	NotifyWaiting        bool                 `json:"notifyWaiting,omitempty"`
+	NotifyDone           bool                 `json:"notifyDone,omitempty"`
+	NotifyFailed         bool                 `json:"notifyFailed,omitempty"`
+	NotifySound          bool                 `json:"notifySound,omitempty"`
+	DockBadge            bool                 `json:"dockBadge,omitempty"`
+	BounceDock           bool                 `json:"bounceDock,omitempty"`
+	RemoteControl        bool                 `json:"remoteControl,omitempty"`
+	Shortcuts            map[string]string    `json:"shortcuts,omitempty"`
+	PanelPct             float64              `json:"panelPercent,omitempty"`     // the editors' share over the bottom panel
+	TermFontSize         float64              `json:"terminalFontSize,omitempty"` // 12 when 0
+	TermCopyOnSelect     bool                 `json:"terminalCopyOnSelect,omitempty"`
+	Workspaces           map[string]Workspace `json:"workspaceSessions,omitempty"`
+
+	path     string // where it is saved; "" saves nowhere, as in tests
+	onRecent func() // called when the recent folders change
+}
+
+// Path is where the configuration lives.
+func Path() string {
+	p, err := appdir.ConfigPath("config.json")
+	if err != nil {
+		return ""
+	}
+	return p
+}
+
+// Load reads the configuration at p; a missing or broken file gives the
+// defaults.
+func Load(p string) *Config {
+	c := &Config{path: p, HiddenNames: ".DS_Store", GitStatus: true, ReopenLast: true, SaveOnDeactivate: true, SaveOnIdle: true, IdleSaveSeconds: 15}
+	if p == "" {
+		return c
+	}
+	if data, err := os.ReadFile(p); err == nil {
+		if json.Unmarshal(data, c) != nil {
+			*c = Config{HiddenNames: ".DS_Store", GitStatus: true, ReopenLast: true, SaveOnDeactivate: true, SaveOnIdle: true, IdleSaveSeconds: 15}
+		}
+		c.path = p
+	}
+	c.IdleSaveSeconds = min(max(c.IdleSaveSeconds, 1), 300)
+	return c
+}
+
+// save writes the configuration, through a temporary file so a crash
+// never leaves half of it.
+// SetPath moves the configuration to p, which the next Save writes.
+func (c *Config) SetPath(p string) { c.path = p }
+
+// Path is where this configuration is saved.
+func (c *Config) Path() string { return c.path }
+
+func (c *Config) Save() error {
+	if c.path == "" {
+		return nil
+	}
+	data, err := json.MarshalIndent(c, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(c.path), 0o700); err != nil {
+		return err
+	}
+	tmp := c.path + ".tmp"
+	if err := os.WriteFile(tmp, data, 0o600); err != nil {
+		return err
+	}
+	return os.Rename(tmp, c.path)
+}
+
+// IsTrusted reports whether root is a workspace the user trusts.
+func (c *Config) IsTrusted(root string) bool { return slices.Contains(c.Trusted, root) }
+
+func (c *Config) Trust(root string) {
+	if !c.IsTrusted(root) {
+		c.Trusted = append(c.Trusted, root)
+	}
+}
+
+// MaxRecent is how many folders the welcome window lists.
+const MaxRecent = 12
+
+// addRecent puts root first among the recent folders.
+func (c *Config) AddRecent(root string) {
+	c.RemoveRecent(root)
+	c.Recent = slices.Insert(c.Recent, 0, root)
+	if len(c.Recent) > MaxRecent {
+		c.Recent = c.Recent[:MaxRecent]
+	}
+	c.recentChanged()
+}
+
+func (c *Config) RemoveRecent(root string) {
+	c.Recent = slices.DeleteFunc(c.Recent, func(p string) bool { return p == root })
+	c.recentChanged()
+}
+
+func (c *Config) ClearRecent() {
+	c.Recent = nil
+	c.recentChanged()
+	if err := c.Save(); err != nil {
+		log.Printf("saving settings: %v", err)
+	}
+}
+
+// SetRecentHook sets what runs when the recent folders change.
+func (c *Config) SetRecentHook(fn func()) { c.onRecent = fn }
+
+func (c *Config) recentChanged() {
+	if c.onRecent != nil {
+		c.onRecent()
+	}
+}
+
+func (c *Config) InterfaceFontSize() float64 {
+	if c.UIFontSize < 10 || c.UIFontSize > 20 {
+		return 13
+	}
+	return c.UIFontSize
+}
+
+// EditorFontSize is the editor's font size, 13 by default.
+func (c *Config) EditorFontSize() float64 {
+	if c.FontSize < 9 || c.FontSize > 28 {
+		return 13
+	}
+	return c.FontSize
+}
+
+// EditorPanelPct is the editors' share of the height over the panel.
+func (c *Config) EditorPanelPct() float64 {
+	if c.PanelPct < 15 || c.PanelPct > 90 {
+		return 66
+	}
+	return c.PanelPct
+}
+
+// TerminalFontSize is the terminal's font size, 12 by default.
+func (c *Config) TerminalFontSize() float64 {
+	if c.TermFontSize < 9 || c.TermFontSize > 28 {
+		return 12
+	}
+	return c.TermFontSize
+}
