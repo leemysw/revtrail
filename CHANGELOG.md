@@ -2,7 +2,7 @@
 
 User-facing changes are grouped by release.
 
-## Unreleased
+## 0.1.0
 
 ### Added
 
