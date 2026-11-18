@@ -47,15 +47,15 @@ type settingsPane struct {
 
 var settingsPanes = []settingsPane{
 	{"general", "General", glyph.Gear, theme.TileGray, 0, "reopen launch recent folders shell command install uninstall path cli autosave idle 自动保存 空闲"},
-	{"appearance", "Appearance", glyph.Gear, theme.TileGray, 0, "appearance theme dark light interface custom font size 界面 字体 字号"},
+	{"appearance", "Appearance", glyph.Palette, theme.TileIndigo, 0, "appearance theme dark light interface custom font size 界面 字体 字号"},
 	{"editor", "Editor", glyph.Lines, theme.TileBlue, 0, "font size line numbers relative soft wrap"},
 	{"terminal", "Terminal", glyph.ShellPrompt, theme.TileGraphite, 0, "shell font size copy on select panel external ghostty rex seedmux codex hook selection 选区"},
 	{"notifications", "Notifications", glyph.Bell, theme.TileOrange, 1, "notify waiting done failed sound dock badge bounce"},
 	{"ai", "AI", glyph.ModelChip, theme.TilePurple, 1, "openai api key model git commit ai 模型 密钥 提交"},
 	{"intelligence", "Code Intelligence", glyph.CodeIntelligence, theme.TileTeal, 1, "gopls tsrs typescript javascript language server go to definition hover trusted folders trust"},
 	{"vcs", "Version Control", glyph.Git, theme.TileGit, 1, "git vcs directory mappings roots repositories update project merge rebase fast-forward branch operations all roots 版本控制 仓库 目录映射 更新 分支"},
-	{"advanced", "Advanced", glyph.Gear, theme.TileGray, 2, "config reset data folder"},
 	{"search", "Search", glyph.Search, theme.TileOrange, 1, "ripgrep rg find open quickly files"},
+	{"advanced", "Advanced", glyph.Wrench, theme.TileGray, 2, "config reset data folder"},
 	{"shortcuts", "Shortcuts", glyph.Command, theme.TileDarkGray, 2, "keys keyboard"},
 }
 

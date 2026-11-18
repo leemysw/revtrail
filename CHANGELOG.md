@@ -42,6 +42,7 @@ User-facing changes are grouped by release.
 
 ### Changed
 
+- Settings' sidebar gives Appearance and Advanced their own icons (IntelliJ's palette and wrench) instead of General's gear, and lists Search with the other tools.
 - Git status refreshes every five seconds only in the window in front, and at once when a window comes to the front, as IntelliJ refreshes on activation; windows behind and an inactive app start no git processes. A watched project looks for nested repositories again only after files change, so an idle project no longer walks its whole tree every minute.
 - Icons are IntelliJ's New UI icons, at GoLand's size and line weight, in place of the system's symbols: Markdown's Editor Only, Editor and Preview and Preview Only, Update Project and Push, the branch, settings, search and tab close icons among them. The line under the editor tabs runs under the editor's buttons too. The Commit tool window has IntelliJ's header, Commit with ⋮ and Hide, and its toolbar no longer repeats Pull and Push; the Project header ends with ⋮ and Hide too. The toolbar marks incoming and outgoing commits beside the branch with IntelliJ's arrows instead of counts, and no longer has split buttons (split from the tab menu or with Cmd+\\).
 - A new app icon: a white Git log glyph, a branch leaving and rejoining the main lane beside three lines of history marked in blue, green and violet, on a bright orange tile.

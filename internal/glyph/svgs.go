@@ -64,6 +64,8 @@ var (
 	FindRecursive    = ui.MustParseSVG([]byte(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 3v12h6M3 5h6"/><rect x="10" y="2" width="7" height="6" rx="1"/><rect x="10" y="12" width="7" height="6" rx="1"/></svg>`))
 	Forward          = intellij("chevronRight")
 	Gear             = intellij("settings")
+	Palette          = intellij("palette")
+	Wrench           = intellij("externalTools")
 	Git              = intellij("branch")
 	GitDiscard       = intellij("reset")
 	GitOpen          = intellij("edit")
