@@ -4,6 +4,16 @@ User-facing changes, newest first. Each release has the same notes in English an
 
 ## Unreleased
 
+## [0.1.2] - 2026-11-18
+
+### English
+
+- The title bar matches GoLand's on macOS: as tall, with the window buttons spaced and placed as GoLand's and the project and branch names at its size.
+
+### 简体中文
+
+- macOS 上标题栏与 GoLand 一致：高度相同，红绿灯的间距与位置、项目名与分支名的字号都和 GoLand 一样。
+
 ## [0.1.1] - 2026-11-18
 
 ### English

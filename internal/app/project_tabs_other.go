@@ -1,7 +1,7 @@
 //go:build !darwin
 
 // INPUT: 无。
-// OUTPUT: 项目标签相关函数的空实现。
+// OUTPUT: 项目标签与红绿灯位置相关函数的空实现。
 // POS: 非 macOS 平台的占位。
 // PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
 
@@ -19,6 +19,7 @@ func projectTabMembers(w *mygo.Window) ([]uintptr, uintptr) {
 }
 
 func configureProjectTab(*mygo.Window)          {}
+func placeTrafficLights(*mygo.Window) bool      { return false }
 func joinProjectTab(*mygo.Window, *mygo.Window) {}
 func projectWindowMenu(*projectWindow, []*projectWindow) *mygo.MenuItem {
 	return &mygo.MenuItem{Role: mygo.RoleWindowMenu}

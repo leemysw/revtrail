@@ -25,13 +25,22 @@ import (
 	"revtrail/locales"
 )
 
-// The native title bar and its traffic lights share this logical height.
-const toolbarHeight = 33
+// The native title bar and its traffic lights share this logical height,
+// GoLand's main toolbar's.
+const toolbarHeight = 32
+
+// toolbarFontSize is the project and branch names' size in GoLand's main
+// toolbar, which stays as it is when the UI font grows.
+const toolbarFontSize = 13
 
 func (a *App) toolbar(c *ui.Context) {
 	bar := c.TitleBar()
 	pal := theme.Of(c)
-	ui.Row(c).FillWidth().Height(max(bar.Height, toolbarHeight)).Padding(0, bar.Right+6, 0, max(bar.Left, 6)+6).
+	left := max(bar.Left, 6) + 6
+	if h, ok := a.host.(*windowHost); ok && bar.Left > 0 && placeTrafficLights(h.win) {
+		left = trafficLightsEnd
+	}
+	ui.Row(c).FillWidth().Height(max(bar.Height, toolbarHeight)).Padding(0, bar.Right+6, 0, left).
 		Gap(4).AlignItems(ui.Center).Background(pal.TitleBar).BorderWidth(0, 0, 1, 0).BorderColor(pal.Hairline).DragWindow().Children(func() {
 		if a.root != "" {
 			a.projectTitle(c)
@@ -178,7 +187,7 @@ func indentLabel(st *editor.State) string {
 }
 
 func titleMenuButton(c *ui.Context, label, tip string, open bool) ui.Element {
-	b := ui.ButtonBase(c.Key(label)).Label(label).Tooltip(tip).Height(28).Padding(0, 10).Gap(6).Radius(6).MinWidth(0).Shrink(1).KeepFocus()
+	b := ui.ButtonBase(c.Key(label)).Label(label).Tooltip(tip).Height(26).Padding(0, 10).Gap(6).Radius(6).MinWidth(0).Shrink(1).KeepFocus()
 	if open || b.Hovered() || b.Pressed() {
 		b.Background(theme.Of(c).Pill)
 	}
@@ -219,8 +228,8 @@ func (a *App) projectTitle(c *ui.Context) {
 	})
 	b.Padding(0, 8, 0, 4)
 	b.Children(func() {
-		projectBadge(c, a.root, 20)
-		ui.Text(c, filepath.Base(a.root)).Bold().SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		projectBadge(c, a.root, 16)
+		ui.Text(c, filepath.Base(a.root)).FontSize(toolbarFontSize).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		glyph.Draw(c, glyph.Restore, 16, theme.Of(c).Muted)
 	})
 }

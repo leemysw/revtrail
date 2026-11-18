@@ -1,5 +1,5 @@
 // INPUT: AppKit 窗口标签组。
-// OUTPUT: 项目窗口合并为原生标签（标题只写项目名）、项目标签栏与 Window 菜单。
+// OUTPUT: 项目窗口合并为原生标签（标题只写项目名）、项目标签栏、Window 菜单与红绿灯的位置。
 // POS: macOS 项目标签的平台实现。
 // PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
 
@@ -24,6 +24,47 @@ func configureProjectTab(w *mygo.Window) {
 	id := objc.ID(objc.GetClass("NSString")).Send(objc.RegisterName("stringWithUTF8String:"), "Revtrail.Project")
 	win.Send(objc.RegisterName("setTabbingIdentifier:"), id)
 	win.Send(objc.RegisterName("setTabbingMode:"), 0)
+}
+
+// placeTrafficLights keeps the window buttons where the toolbar wants
+// them (trafficLightX, trafficLightPitch, centered in toolbarHeight):
+// mygo places only the close button and keeps AppKit's spacing, and
+// AppKit lays the title bar out again on its own, as when windows join a
+// tab group. It reports whether the window has the buttons to place.
+func placeTrafficLights(w *mygo.Window) bool {
+	type point struct{ X, Y float64 }
+	type rect struct {
+		point
+		W, H float64
+	}
+	sel := objc.RegisterName
+	win := objc.ID(w.NativeHandle())
+	const fullScreen = 1 << 14
+	if win == 0 || objc.Send[uint](win, sel("styleMask"))&fullScreen != 0 {
+		return false
+	}
+	closeButton := win.Send(sel("standardWindowButton:"), 0)
+	if closeButton == 0 {
+		return false
+	}
+	container := closeButton.Send(sel("superview")).Send(sel("superview"))
+	if container == 0 {
+		return false
+	}
+	frame := objc.Send[rect](win, sel("frame"))
+	bar := objc.Send[rect](container, sel("frame"))
+	if bar.H != toolbarHeight || bar.Y != frame.H-toolbarHeight {
+		bar.H, bar.Y = toolbarHeight, frame.H-toolbarHeight
+		container.Send(sel("setFrame:"), bar)
+	}
+	for i := range 3 {
+		button := win.Send(sel("standardWindowButton:"), i)
+		at := point{float64(trafficLightX + i*trafficLightPitch), (toolbarHeight - trafficLightSize) / 2}
+		if button != 0 && objc.Send[rect](button, sel("frame")).point != at {
+			button.Send(sel("setFrameOrigin:"), at)
+		}
+	}
+	return true
 }
 
 func projectTabMembers(w *mygo.Window) (members []uintptr, selected uintptr) {

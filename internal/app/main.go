@@ -115,7 +115,7 @@ func Main() {
 			// the controls are placed in the middle of ours instead.
 			TitleBarStyle:        mygo.TitleBarHidden,
 			TitleBarHeight:       toolbarHeight,
-			TrafficLightPosition: &mygo.Point{X: 20, Y: (toolbarHeight - trafficLightSize) / 2},
+			TrafficLightPosition: &mygo.Point{X: trafficLightX, Y: (toolbarHeight - trafficLightSize) / 2},
 			Vibrancy:             mygo.VibrancySidebar,
 			Hidden:               true, // until a folder opens (windows.sync)
 			Content:              ui.View(func(c *ui.Context) { a.view(c); wins.sync(win) }),
@@ -279,7 +279,7 @@ func Main() {
 			childWin := mygo.NewWindow(mygo.WindowOptions{
 				Hidden: true, Title: "Revtrail", Width: width, Height: height, MinWidth: 480, MinHeight: 320,
 				TitleBarStyle: mygo.TitleBarHidden, TitleBarHeight: toolbarHeight,
-				TrafficLightPosition: &mygo.Point{X: 20, Y: (toolbarHeight - trafficLightSize) / 2},
+				TrafficLightPosition: &mygo.Point{X: trafficLightX, Y: (toolbarHeight - trafficLightSize) / 2},
 				Vibrancy:             mygo.VibrancySidebar, Content: ui.View(child.view),
 			})
 			configureProjectTab(childWin)
@@ -557,6 +557,15 @@ func appMenu(a *App) *mygo.MenuItem {
 // trafficLightSize is the height of macOS's window buttons, which the
 // title bars center them by.
 const trafficLightSize = 14
+
+// In a project window the buttons sit as GoLand's do on macOS 26: 9
+// points in and 20 apart (AppKit spaces a hidden title bar's 23 apart),
+// and the toolbar's first item starts 25 after them.
+const (
+	trafficLightX     = 9
+	trafficLightPitch = 20
+	trafficLightsEnd  = trafficLightX + 2*trafficLightPitch + trafficLightSize + 25
+)
 
 // settingsBarHeight is the settings window's title bar, as tall as
 // System Settings'.

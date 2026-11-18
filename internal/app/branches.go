@@ -416,7 +416,7 @@ func (a *App) branchButton(c *ui.Context) {
 		if len(a.git.roots) > 1 && a.commonBranch() == "" {
 			label = a.repoLabel(a.git.root) + " · " + label
 		}
-		ui.Text(c, label).TextColor(theme.Of(c).Muted).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
+		ui.Text(c, label).FontSize(toolbarFontSize).TextColor(theme.Of(c).Muted).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		// IntelliJ's incoming and outgoing marks, without counts.
 		if a.git.behind > 0 {
 			s := fmt.Sprintf(locales.BranchIncoming(), a.git.behind)

@@ -12,8 +12,8 @@
 //   - windows.go：两个窗口的显示同步与重新打开。
 //   - project_manager.go：projectWindow 与退出前逐窗口确认未保存文件。
 //   - project_session.go：记住 / 恢复上次打开的项目窗口。
-//   - project_tabs_darwin.go：项目窗口合并为原生标签（标题只写项目名）、项目标签栏与 Window 菜单。
-//   - project_tabs_other.go：项目标签相关函数的空实现。
+//   - project_tabs_darwin.go：项目窗口合并为原生标签（标题只写项目名）、项目标签栏、Window 菜单与红绿灯的位置。
+//   - project_tabs_other.go：项目标签与红绿灯位置相关函数的空实现。
 //   - welcome.go：欢迎窗口：介绍、操作与最近项目列表。
 //   - pprof.go：REVTRAIL_PPROF 设了本机地址时开启 pprof，供开发时分析内存。
 //   - cli.go：openCLIPath / revealCLIPath：打开文件夹或在已打开的窗口中定位文件。
