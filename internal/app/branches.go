@@ -283,6 +283,13 @@ func (a *App) backBranchPage() {
 	p.list.ScrollTo(p.sel, ui.Center)
 }
 
+// blocked: while a git job or fetch runs, the items that act stay greyed,
+// but pages, repositories and groups still open, as IntelliJ's popup does
+// during a fetch.
+func (a *App) blocked(it branchItem) bool {
+	return it.disabled || a.git.busy && (it.run != nil || it.common)
+}
+
 func firstChoosable(items []branchItem) int {
 	for i, it := range items {
 		if it.group == "" && !it.disabled {
@@ -303,7 +310,7 @@ func (a *App) branchPage(page string) {
 }
 func (a *App) chooseBranch(it branchItem) {
 	p := &a.git.picker
-	if it.disabled || a.git.busy {
+	if a.blocked(it) {
 		return
 	}
 	switch {
@@ -524,7 +531,7 @@ func (a *App) branchPickerPanel(c *ui.Context) {
 			ui.List(c, &p.list, len(items), func(i int) {
 				it := items[i]
 				pal := theme.Of(c)
-				b := ui.ButtonBase(c.Key(i)).KeepFocus().FillWidth().Height(24).Padding(1, 8, 1, float32(7+it.depth*14)).Gap(6).Radius(4).AlignItems(ui.Center).Label(it.name).Disabled(it.disabled)
+				b := ui.ButtonBase(c.Key(i)).KeepFocus().FillWidth().Height(24).Padding(1, 8, 1, float32(7+it.depth*14)).Gap(6).Radius(4).AlignItems(ui.Center).Label(it.name).Disabled(a.blocked(it))
 				if it.divider {
 					b.BorderWidth(1, 0, 0, 0).BorderColor(pal.Separator)
 				}

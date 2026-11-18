@@ -7,10 +7,12 @@ User-facing changes, newest first. Each release has the same notes in English an
 ### English
 
 - Settings › AI shows the saved API key as its first and last characters with dots between, instead of an empty field.
+- While Git fetches or runs an operation, the branch popup still opens repositories and branches; only its actions wait, shown greyed.
 
 ### 简体中文
 
 - 设置 › AI 中已保存的 API Key 显示首尾字符、中间以圆点代替，不再是空白输入框。
+- Git 拉取或执行操作期间，分支弹窗仍可进入仓库与分支，只有操作项暂时置灰。
 
 ## [0.1.0] - 2026-11-18
 

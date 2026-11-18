@@ -120,6 +120,24 @@ func TestBranchPickerSwitchesAndCreates(t *testing.T) {
 		t.Fatalf("on %q, picker open %v, notice %q", h.a.git.branch, h.a.git.picker.open, h.a.notice)
 	}
 
+	// During a fetch the branch still opens its actions; they stay greyed.
+	h.a.openBranchPicker(h.a.git.picker.anchor)
+	h.settle(func() bool { return !h.a.git.picker.loading })
+	h.a.git.busy = true
+	if err := h.tt.Click("main"); err != nil {
+		t.Fatal(err)
+	}
+	h.tt.Frame()
+	if !h.tt.HasText("Checkout") {
+		t.Fatalf("a fetch blocks the branch: %v", h.tt.Texts())
+	}
+	_ = h.tt.Click("Checkout")
+	h.tt.Frame()
+	if h.a.git.branch != "feature" || !h.a.git.picker.open {
+		t.Fatalf("checkout ran during a fetch: on %q", h.a.git.branch)
+	}
+	h.a.git.busy = false
+
 	h.a.openBranchPicker(h.a.git.picker.anchor)
 	h.settle(func() bool { return !h.a.git.picker.loading })
 	if err := h.tt.Click("New Branch…"); err != nil {
