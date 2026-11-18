@@ -4,6 +4,14 @@ User-facing changes, newest first. Each release has the same notes in English an
 
 ## Unreleased
 
+### English
+
+- Settings › AI shows the saved API key as its first and last characters with dots between, instead of an empty field.
+
+### 简体中文
+
+- 设置 › AI 中已保存的 API Key 显示首尾字符、中间以圆点代替，不再是空白输入框。
+
 ## [0.1.0] - 2026-11-18
 
 ### English

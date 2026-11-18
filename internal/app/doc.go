@@ -106,7 +106,7 @@
 //   - font_settings.go：字体选择弹窗与预览。
 //   - theme.go：(*App).colors、外观切换与界面 / 编辑器主题；通用控件在 internal/widget。
 //   - toolbar.go：顶部工具栏（项目徽标、设置）、状态栏（路径、光标、行分隔符、编码、缩进）、项目选择器与活动指示。
-//   - *_test.go：行为测试（32 个文件）；harness_test.go 是界面测试夹具。
+//   - *_test.go：行为测试（33 个文件）；harness_test.go 是界面测试夹具。
 //
 // [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 package app

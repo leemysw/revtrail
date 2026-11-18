@@ -1,5 +1,5 @@
 // INPUT: config 里的模型服务地址与密钥、commitai 客户端。
-// OUTPUT: 设置 › AI 面板与模型列表拉取。
+// OUTPUT: 设置 › AI 面板（已存密钥显示首尾字符、中间用圆点）与模型列表拉取。
 // POS: 提交信息生成所用模型服务的配置界面。
 // PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
 
@@ -20,8 +20,11 @@ import (
 
 type aiSettings struct {
 	base, key, err string
-	models         []string
-	loading        bool
+	// saved is the key saved for the address in use, shown as its head
+	// and tail, or "" when there is none.
+	saved   string
+	models  []string
+	loading bool
 }
 
 func aiClient(base string) (commitai.Client, error) {
@@ -50,7 +53,10 @@ func (a *App) aiPane(c *ui.Context) {
 		fieldWidth(ui.TextInput(c, &s.base)).Label(locales.AiBaseURL()).Disabled(s.loading)
 	}, func() {
 		labeled(c, "API Key", locales.AiKeyHint())
-		fieldWidth(ui.TextInput(c, &s.key).Password()).Label("API Key").Disabled(s.loading)
+		key := fieldWidth(ui.TextInput(c, &s.key).Password()).Label("API Key").Disabled(s.loading)
+		if hint := a.savedKeyHint(s); hint != "" {
+			key.Placeholder(hint)
+		}
 	}, func() {
 		ui.Box(c).Grow(1)
 		if s.loading {
@@ -111,6 +117,7 @@ func (a *App) fetchAIModels(s *aiSettings, save bool) {
 	go func() {
 		client, err := aiClient(base)
 		var models []string
+		saved := maskKey(client.Key)
 		if err == nil {
 			models, err = client.Models(context.Background())
 		}
@@ -119,6 +126,9 @@ func (a *App) fetchAIModels(s *aiSettings, save bool) {
 				return
 			}
 			s.loading = false
+			if base == a.cfg.AIBaseURL {
+				s.saved = saved
+			}
 			if base == a.cfg.AIBaseURL {
 				s.models = models
 				if err != nil {
@@ -133,4 +143,27 @@ func (a *App) fetchAIModels(s *aiSettings, save bool) {
 			a.host.RefreshSettings()
 		})
 	}()
+}
+
+// savedKeyHint is what the empty key field shows: the saved key, masked,
+// while the address is the one it was saved for.
+func (a *App) savedKeyHint(s *aiSettings) string {
+	if strings.TrimRight(strings.TrimSpace(s.base), "/") != a.cfg.AIBaseURL {
+		return ""
+	}
+	return s.saved
+}
+
+// maskKey shows a key as its first and last four characters with dots
+// for the rest, as many as it hides up to a field's width; a key too
+// short to show any of is dots alone.
+func maskKey(key string) string {
+	r := []rune(strings.TrimSpace(key))
+	switch {
+	case len(r) == 0:
+		return ""
+	case len(r) <= 12:
+		return strings.Repeat("•", len(r))
+	}
+	return string(r[:4]) + strings.Repeat("•", min(len(r)-8, 32)) + string(r[len(r)-4:])
 }
