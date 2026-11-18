@@ -16,7 +16,7 @@ jobs:
         run: |
           version=$(jq -er '.version | select(type == "string" and length > 0)' mygo.json)
           test "$GITHUB_REF_NAME" = "v$version" || { echo "Tag must match mygo.json version: v$version" >&2; exit 1; }
-          awk -v v="$version" '/^## /{p = ($2 == v); next} p' CHANGELOG.md | grep -qE '^[[:space:]]*[-*] [^[:space:]]' || { echo "CHANGELOG.md needs a ## $version section with at least one bullet" >&2; exit 1; }
+          .github/release-notes.sh "$version" > /dev/null
 
   build:
     needs: check

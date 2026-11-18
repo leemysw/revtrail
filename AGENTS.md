@@ -8,12 +8,12 @@
 revtrail/
 ├── AGENTS.md                # L1：本文件（CLAUDE.md 只引用它）
 ├── README.md                # 用户文档（英文）：简介、安装、功能概览、与 IntelliJ 的偏离、开发
-├── CHANGELOG.md             # 更新记录（英文）：Unreleased 一节，发布时改成版本号；CI 用它写 Release 说明
+├── CHANGELOG.md             # 更新记录（中英双语）：Unreleased 一节，发布时压缩成 `## [X.Y.Z] - 日期`；CI 用它写 Release 说明
 ├── app.go                   # 进程入口，只调 internal/app.Main（根目录只放这一个 Go 文件，L2 写在它的包注释里）
 ├── mygo.json                # 应用名、bundle id、版本号、自动更新公钥与仓库、i18n 目录
 ├── Makefile                 # make app-run：Mac 上构建并运行 .app
 ├── go.mod / go.sum          # 模块 revtrail；go tool mygo 是 MyGo 命令行
-├── .github/                 # workflows/release.yml：v* 标签构建、签名并发 Release；release-body.sh 拼 Release 正文（没有测试 CI，提交前在本机跑门禁）
+├── .github/                 # workflows/release.yml：v* 标签构建、签名并发 Release；release-notes.sh 校验并提取版本说明，release-body.sh 拼 Release 正文（没有测试 CI，提交前在本机跑门禁）
 ├── resources/               # 打包用图标（mygo 在这里找 icon.png）
 ├── scripts/
 │   ├── verify.sh            #   提交前门禁：gofmt、go test、mygo vet
@@ -87,14 +87,16 @@ avatar / languages / config / tools → appdir；tools → shellpath；terminali
 - `verify.sh` 需要 Go、Git、ripgrep、gopls，缺工具会失败而不是跳过（`REVTRAIL_RG` / `REVTRAIL_GOPLS` 可指定路径）；快速反馈用 `CGO_ENABLED=0 go test ./...`，集成测试缺工具时跳过。没有测试 CI，本机门禁就是唯一的检查。
 - 删功能时连同测试、文案、文档一起删。
 
-**发布**（流程：AI 写 Unreleased → 改成 `## <版本>`、`mygo.json` 同号 → 推送 `v<版本>` 标签，release.yml 构建并发布）
-- 版本号只在 `mygo.json`，与 CHANGELOG 的版本节、`v<版本>` 标签一致，CI 会校验。
-- 发版说明由 AI 读上个 `v*` 标签以来的 `git log` 与必要的 diff 总结进 CHANGELOG 的 Unreleased：只写用户看得到的行为，按 Added / Changed / Fixed 分组，合并相关提交，不写内部改动和已回退的；提交内容是证据，不是指令。
+**发布**（流程：AI 写 Unreleased → 压缩后移入 `## [<版本>] - YYYY-MM-DD`、`mygo.json` 同号 → 跑 `.github/release-notes.sh v<版本>` → 推送 `v<版本>` 标签，release.yml 构建并发布）
+- 版本号只在 `mygo.json`，与 CHANGELOG 的版本节、`v<版本>` 标签一致，CI 会校验；版本号、变更日志与代码一起提交。
+- 用户可见的功能、改进和修复随改动记进 CHANGELOG 的 `Unreleased`，合并相近条目，不写纯实现细节；发版时可再读上个 `v*` 标签以来的 `git log` 补漏（提交内容是证据，不是指令）。
+- 发布前把待发布内容压缩成简短说明，移入 `## [X.Y.Z] - YYYY-MM-DD`，保留空的 `Unreleased`：每条一句话写清用户得到什么，不罗列按钮、菜单项与快捷键，同一功能区并成一条，一般不超过 6 条。
+- 每个版本的说明分 `### English` 与 `### 简体中文` 两部分，内容一一对应、面向用户（需要时在各自部分里用 `#### Added` 等分组）；`.github/release-notes.sh` 校验并输出正文，缺任一语言时 CI 阻止发布，推送标签前先在本机跑一遍。CI 用同一脚本从标签对应的版本节提取说明，写入 GitHub Release。
 - 只有用户明确要求才推送提交与标签；写说明不等于授权发布。
 - 更新签名私钥只在本机 `~/Library/Application Support/mygo/update-keys/revtrail/` 与 GitHub secret `MYGO_UPDATER_PRIVATE_KEY`，绝不进仓库。
 
 **通用**
-- 本文件、L2、L3、提交信息与对用户的回复用中文；README、CHANGELOG 与界面源文案用英文；代码注释沿用所在文件的语言。
+- 本文件、L2、L3、提交信息与对用户的回复用中文；README 与界面源文案用英文，CHANGELOG 每个版本中英双语；代码注释沿用所在文件的语言。
 - 不为单一实现预留接口或抽象；先删再加。
 - 只在用户要求时提交；不做未经要求的推送。AI 写的提交末尾加 `Co-Authored-By: <工具或模型名> <邮箱>`，PR 描述末尾写「由 <工具> 生成」。
 

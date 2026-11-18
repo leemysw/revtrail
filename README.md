@@ -31,4 +31,4 @@ go tool mygo build      # production build into build/
 ./scripts/verify.sh     # checks to pass before committing
 ```
 
-[AGENTS.md](./AGENTS.md) describes the code layout, rules and tests, and [CHANGELOG.md](./CHANGELOG.md) the changes. To release, move the Unreleased notes in CHANGELOG.md to a version section, set the same version in `mygo.json`, and push a `v<version>` tag; the [release workflow](./.github/workflows/release.yml) builds, signs and publishes it.
+[AGENTS.md](./AGENTS.md) describes the code layout, rules and tests, and [CHANGELOG.md](./CHANGELOG.md) the changes. To release, condense the Unreleased notes in CHANGELOG.md into a `## [X.Y.Z] - YYYY-MM-DD` section with `### English` and `### 简体中文` parts, set the same version in `mygo.json`, check them with `.github/release-notes.sh vX.Y.Z`, and push a `v<version>` tag; the [release workflow](./.github/workflows/release.yml) builds, signs and publishes it.

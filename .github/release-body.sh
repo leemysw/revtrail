@@ -75,5 +75,5 @@ row() {
 	echo
 	echo '---'
 	echo
-	awk -v v="${tag#v}" '/^## /{p = ($2 == v); next} p' CHANGELOG.md
+	"$(dirname "$0")/release-notes.sh" "$tag"
 }
