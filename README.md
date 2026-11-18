@@ -29,6 +29,7 @@ go tool mygo dev        # run with live reload
 make app-run            # macOS: build and run the .app
 go tool mygo build      # production build into build/
 ./scripts/verify.sh     # checks to pass before committing
+REVTRAIL_PPROF=127.0.0.1:6060 <app binary>   # serve pprof profiles on that loopback address
 ```
 
 [AGENTS.md](./AGENTS.md) describes the code layout, rules and tests, and [CHANGELOG.md](./CHANGELOG.md) the changes. To release, condense the Unreleased notes in CHANGELOG.md into a `## [X.Y.Z] - YYYY-MM-DD` section with `### English` and `### 简体中文` parts, set the same version in `mygo.json`, check them with `.github/release-notes.sh vX.Y.Z`, and push a `v<version>` tag; the [release workflow](./.github/workflows/release.yml) builds, signs and publishes it.

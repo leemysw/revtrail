@@ -41,6 +41,7 @@ func Main() {
 		return
 	}
 	shellpath.Start()
+	startProfiling()
 	mygo.Use(native.Plugin)
 	cfg := config.Load(config.Path())
 	a := newApp(cfg)

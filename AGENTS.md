@@ -107,6 +107,7 @@ avatar / languages / config / tools → appdir；tools → shellpath；terminali
 staticcheck ./... && deadcode ./...   # 都必须没有输出
 go test ./internal/app -run TestX     # 单个界面测试
 go tool mygo generate                 # 改了 locales/*.json 后重新生成
+REVTRAIL_PPROF=127.0.0.1:6060 <App>   # 开启 pprof：go tool pprof http://127.0.0.1:6060/debug/pprof/heap
 make app-run                          # Mac 上构建并运行 .app
 ```
 
