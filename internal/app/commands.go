@@ -71,6 +71,26 @@ func commands() []command {
 		{"Git: Compare with Branch…", "", "", 0, 0, func(a *App) { a.promptCompareBranches() }},
 		{"Git: Copy Patch from Changes", "", "", 0, 0, func(a *App) { a.copyWorkingPatch() }},
 		{"Git: Apply Patch…", "", "", 0, 0, func(a *App) { a.promptApplyPatch() }},
+		{"Git: Apply Patch from Clipboard", "", "", 0, 0, func(a *App) { a.applyClipboardPatch() }},
+		{"Git: Merge…", "", "", 0, 0, func(a *App) { a.promptMerge() }},
+		{"Git: Rebase…", "", "", 0, 0, func(a *App) { a.promptRebase() }},
+		{"Git: New Branch…", "", "", 0, 0, func(a *App) {
+			if a.git.root != "" {
+				a.promptNewBranchHere()
+			}
+		}},
+		{"Git: New Tag…", "", "", 0, 0, func(a *App) {
+			if a.git.root != "" {
+				a.promptNewTag("HEAD", a.git.branch)
+			}
+		}},
+		{"Git: Manage Remotes…", "", "", 0, 0, func(a *App) { a.openRemotes() }},
+		{"Git: Clone…", "", "", 0, 0, func(a *App) { a.openClone() }},
+		{"Git: Rollback…", "", "", 0, 0, func(a *App) { a.rollbackAll() }},
+		{"Git: Commit File…", "", "", 0, 0, func(a *App) { a.commitCurrentFile() }},
+		{"Git: Add File", "", "", 0, 0, func(a *App) { a.addCurrentFile() }},
+		{"Git: Show Diff", "", "", 0, 0, func(a *App) { a.showCurrentFileDiff() }},
+		{"Git: Rollback File…", "", "", 0, 0, func(a *App) { a.rollbackCurrentFile() }},
 		{"Filter Files", "Alt+Cmd+", "J", ui.Alt | ui.Cmd, ui.KeyJ, func(a *App) {
 			a.filter.speed = treeSearch{}
 			a.sidebarOff, a.navigator, a.filter.focus = false, navFiles, true
@@ -143,6 +163,14 @@ func commands() []command {
 		}},
 		command{"Find Usages", "Shift+", "F12", ui.Shift, ui.KeyF12, func(a *App) { a.findUsages(false) }},
 		command{"Find Callers", "", "", 0, 0, func(a *App) { a.findUsages(true) }},
+		command{"Show Context Actions", "", "", 0, 0, func(a *App) { a.showContextActions() }},
+		command{"Reformat Code", "", "", 0, 0, func(a *App) { a.reformatCode() }},
+		command{"Optimize Imports", "", "", 0, 0, func(a *App) { a.optimizeImports() }},
+		command{"Refactor This…", "", "", 0, 0, func(a *App) { a.refactorThis() }},
+		command{"Rename…", "", "", 0, 0, func(a *App) { a.renameSymbol() }},
+		command{"Extract Variable…", "", "", 0, 0, func(a *App) { a.extractVariable() }},
+		command{"Extract Method…", "", "", 0, 0, func(a *App) { a.extractMethod() }},
+		command{"Inline…", "", "", 0, 0, func(a *App) { a.inlineSymbol() }},
 		command{"Go to Definition", "", "F12", 0, 0, func(a *App) {
 			if st := a.activeEditor(); st != nil && st.OnDefinition != nil {
 				st.OnDefinition(st.Buffer.Offset(st.CursorPos()))

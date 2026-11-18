@@ -51,6 +51,8 @@ type gitState struct {
 	op                                      git.RepoOp
 	prompt                                  *gitPrompt
 	choice                                  *gitChoiceDialog
+	remoteDialog                            *remotesDialog
+	clone                                   *cloneDialog
 	rebase                                  *rebaseDialog
 	stashes                                 stashWindow
 	stashTab                                bool // the Commit tool window shows its Stash tab
@@ -412,6 +414,9 @@ func (a *App) refreshGit() {
 				a.git.messageHistory = messages
 			}
 			a.git.syncInclusion(changes)
+			if op != a.git.op {
+				defer a.host.RefreshMenu() // the Git menu shows the operation's items
+			}
 			a.git.root, a.git.branch, a.git.changes, a.git.head, a.git.op = r, b, changes, head, op
 			a.git.ignored = ignored
 			a.git.upstream, a.git.ahead, a.git.behind = upstream, ahead, behind

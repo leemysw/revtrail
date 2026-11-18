@@ -50,6 +50,7 @@ func (a *App) diagnosticsHandler(gen int) func(*langserver.Server, string, edito
 				return
 			}
 			d.diagnostics, d.diagnosticVersion, d.diagnosed = out, snap.Version(), true
+			d.lspDiagnostics, d.lspDiagnosticVersion = ds, snap.Version()
 			for _, g := range a.groups() {
 				if st := g.eds[path]; st != nil {
 					st.SetDiagnostics(snap.Version(), out)

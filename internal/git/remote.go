@@ -1,5 +1,5 @@
 // INPUT: 远端配置。
-// OUTPUT: Tracking、Fetch、UpdateSummary、WebURL 等。
+// OUTPUT: Tracking、Fetch、UpdateSummary、WebURL；远端的列出、添加、编辑、移除；Clone。
 // POS: 远端与托管平台链接。
 // PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
 
@@ -8,6 +8,8 @@ package git
 import (
 	"context"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -100,8 +102,75 @@ func AddBranchRemote(ctx context.Context, root, target, remote, url string) erro
 	if _, err := Command(ctx, root, "check-ref-format", "refs/heads/"+target); err != nil {
 		return err
 	}
-	_, err := Command(ctx, root, "remote", "add", "--", remote, url)
+	return AddRemote(ctx, root, remote, url)
+}
+
+// Remote is a remote's name and the URL it fetches from.
+type Remote struct {
+	Name, URL string
+}
+
+// RemoteList lists the remotes with their URLs, origin first, as
+// IntelliJ's Git Remotes dialog.
+func RemoteList(ctx context.Context, root string) ([]Remote, error) {
+	if _, err := Command(ctx, root, "rev-parse", "--git-dir"); err != nil {
+		return nil, err
+	}
+	var list []Remote
+	for _, name := range Remotes(ctx, root) {
+		out, err := Command(ctx, root, "remote", "get-url", "--", name)
+		if err != nil {
+			return nil, err
+		}
+		list = append(list, Remote{Name: name, URL: strings.TrimSpace(string(out))})
+	}
+	return list, nil
+}
+
+// AddRemote registers a remote named name at url.
+func AddRemote(ctx context.Context, root, name, url string) error {
+	_, err := Command(ctx, root, "remote", "add", "--", name, url)
 	return err
+}
+
+// EditRemote renames the remote old to name when they differ, and points
+// it at url.
+func EditRemote(ctx context.Context, root, old, name, url string) error {
+	if old != name {
+		if _, err := Command(ctx, root, "remote", "rename", "--", old, name); err != nil {
+			return err
+		}
+	}
+	_, err := Command(ctx, root, "remote", "set-url", "--", name, url)
+	return err
+}
+
+// RemoveRemote removes the remote name with its remote-tracking branches.
+func RemoveRemote(ctx context.Context, root, name string) error {
+	_, err := Command(ctx, root, "remote", "remove", "--", name)
+	return err
+}
+
+// Clone clones the repository at url into dir, a folder that does not
+// exist yet or is empty.
+func Clone(ctx context.Context, url, dir string) error {
+	parent := filepath.Dir(dir)
+	if err := os.MkdirAll(parent, 0o755); err != nil {
+		return err
+	}
+	_, err := Network(ctx, parent, "clone", "--", url, dir)
+	return err
+}
+
+// CloneName is the folder a clone of url goes to by default, as git
+// names it: the last part of its path without .git.
+func CloneName(url string) string {
+	url = strings.TrimRight(strings.TrimSpace(url), "/\\")
+	url = strings.TrimRight(strings.TrimSuffix(url, ".git"), "/\\")
+	if i := strings.LastIndexAny(url, "/:\\"); i >= 0 {
+		url = url[i+1:]
+	}
+	return url
 }
 
 // Fetch updates remote-tracking branches across all remotes.

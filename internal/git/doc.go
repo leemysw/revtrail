@@ -8,7 +8,7 @@
 //   - checks.go：commitIndex.check：提交前检查。
 //   - commit_diff.go：CommitDiff：提交将带上的差异。
 //   - commit_selection.go：commitIndex、CommitSelected、WorkingFileDiff、ChangeDiff：在临时索引上按选择提交。
-//   - git.go：Command / Network / run：统一环境的 git 进程；状态解析与 Change。
+//   - git.go：Command / Network / run：统一环境的 git 进程；状态解析与 Change；Add（git add）。
 //   - history.go：日志（区分标签）、提交详情、图谱、未推送 / 待拉取提交与文件统计（含 --name-status 状态）。
 //   - ignore.go：Ignored：被忽略路径的查询。
 //   - inspect.go：Blame、FileHistory、CompareRefs、ApplyPatchText、DiffFiles。
@@ -17,7 +17,7 @@
 //   - operations.go：合并、变基、继续 / 跳过 / 中止、Smart Checkout 自动储藏、拣选、还原（含 RevertFiles）。
 //   - push.go：PushPlan：待推提交与推送。
 //   - rebase.go：RebasePlan、InteractiveRebase、Autosquash。
-//   - remote.go：Tracking、Fetch、UpdateSummary、WebURL 等。
+//   - remote.go：Tracking、Fetch、UpdateSummary、WebURL；RemoteList、AddRemote、EditRemote、RemoveRemote 管理远端；Clone、CloneName。
 //   - repositories.go：Roots：工作区内的 git 仓库根。
 //   - reword.go：Reword、CommitMessage、Pushed：不动工作区改写提交信息。
 //   - stash.go：储藏的列出（含提交哈希）、文件（含未跟踪文件）、保存、查看、应用、建分支、删除与清空。

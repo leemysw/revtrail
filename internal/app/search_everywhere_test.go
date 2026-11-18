@@ -60,19 +60,27 @@ func TestSearchEverywhere(t *testing.T) {
 	}
 }
 
-// The Navigate and Git menus' items name commands that exist.
+// The View, Navigate and Git menus' items, in their submenus too, run
+// commands that exist.
 func TestMenuBarCommands(t *testing.T) {
 	h := newHarness(t, writeTree(t, map[string]string{"a.txt": "a"}))
 	names := map[string]bool{}
 	for _, cmd := range commands() {
-		names[commandLabel(cmd.name)] = true
+		names[cmd.name] = true
 	}
 	run := func(fn func()) { fn() }
-	for _, m := range []*mygo.MenuItem{h.a.navigateMenu(run), h.a.gitMenu(run)} {
-		for _, it := range m.Submenu {
-			if it.Click != nil && !names[it.Label] {
-				t.Errorf("%s: %q names no command", m.Label, it.Label)
+	var check func(menu string, items []*mygo.MenuItem)
+	check = func(menu string, items []*mygo.MenuItem) {
+		for _, it := range items {
+			if it.Submenu != nil {
+				check(menu+" › "+it.Label, it.Submenu)
+			}
+			if it.Click != nil && it.Type != mygo.MenuItemRadio && !names[it.ID] {
+				t.Errorf("%s: %q runs no command (%q)", menu, it.Label, it.ID)
 			}
 		}
+	}
+	for _, m := range []*mygo.MenuItem{h.a.viewMenu(run), h.a.navigateMenu(run), h.a.codeMenu(run), h.a.refactorMenu(run), h.a.gitMenu(run)} {
+		check(m.Label, m.Submenu)
 	}
 }

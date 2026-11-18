@@ -1,5 +1,5 @@
 // INPUT: 服务器进程的 stdin / stdout 与 Options。
-// OUTPUT: Client：初始化、文档同步、定义、悬浮、符号、诊断回调。
+// OUTPUT: Client：初始化、文档同步、定义、悬浮、符号、诊断回调；重构请求在 refactor.go。
 // POS: LSP 客户端。
 // PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
 
@@ -42,8 +42,10 @@ type Client struct {
 	openNote        bool
 	defs            bool
 	pullDiagnostics bool
+	caps            serverCapabilities
 	diagMu          sync.Mutex
 	onDiagnostics   func(string, *int, []Diagnostic)
+	onApplyEdit     func(context.Context, string, WorkspaceEdit) error
 
 	cmd    *exec.Cmd
 	stdin  io.Closer
@@ -178,10 +180,25 @@ func (c *Client) initialize(ctx context.Context) error {
 				"callHierarchy":   map[string]any{"dynamicRegistration": false},
 				"definition":      map[string]any{"linkSupport": true, "dynamicRegistration": false},
 				"hover":           map[string]any{"contentFormat": []string{"markdown", "plaintext"}, "dynamicRegistration": false},
+				"rename":          map[string]any{"prepareSupport": true, "dynamicRegistration": false},
+				"formatting":      map[string]any{"dynamicRegistration": false},
+				"codeAction": map[string]any{
+					"dynamicRegistration": false,
+					"codeActionLiteralSupport": map[string]any{"codeActionKind": map[string]any{"valueSet": []string{
+						"quickfix", "refactor", "refactor.extract", "refactor.inline", "refactor.rewrite", "source", "source.organizeImports",
+					}}},
+					"isPreferredSupport": true,
+					"disabledSupport":    true,
+					"dataSupport":        true,
+					"resolveSupport":     map[string]any{"properties": []string{"edit"}},
+				},
 			},
 			"workspace": map[string]any{
 				"workspaceFolders": true,
 				"configuration":    true,
+				"applyEdit":        true,
+				"workspaceEdit":    map[string]any{"documentChanges": true, "resourceOperations": []string{"create", "rename", "delete"}},
+				"executeCommand":   map[string]any{"dynamicRegistration": false},
 			},
 			"window": map[string]any{"workDoneProgress": false},
 		},
@@ -195,6 +212,7 @@ func (c *Client) initialize(ctx context.Context) error {
 	if err := c.conn.Call(ctx, "initialize", params, &res); err != nil {
 		return fmt.Errorf("initialize: %w", err)
 	}
+	c.caps = res.Capabilities
 	c.encoding = NegotiatedEncoding(res.Capabilities.PositionEncoding)
 	c.sync, c.openNote = res.Capabilities.syncKind()
 	c.defs = res.Capabilities.hasDefinition()
@@ -369,6 +387,8 @@ func (h *handler) Handle(ctx context.Context, method string, params json.RawMess
 		}
 		_ = json.Unmarshal(params, &p)
 		return make([]any, len(p.Items)), nil // null for each: the server's defaults
+	case "workspace/applyEdit":
+		return h.applyEdit(ctx, params)
 	case "workspace/workspaceFolders":
 		return []map[string]any{{"uri": h.opts.RootURI, "name": h.opts.Name}}, nil
 	case "client/registerCapability", "client/unregisterCapability",

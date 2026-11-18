@@ -28,9 +28,13 @@ type Range struct {
 // Location is a range of a document named by its URI.
 type Diagnostic struct {
 	Range    Range  `json:"range"`
-	Severity int    `json:"severity"`
+	Severity int    `json:"severity,omitempty"`
 	Message  string `json:"message"`
-	Source   string `json:"source"`
+	Source   string `json:"source,omitempty"`
+	// Code and Data go back to the server unread, with a request for
+	// the fixes of the diagnostic.
+	Code json.RawMessage `json:"code,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 }
 
 type Location struct {
@@ -115,10 +119,13 @@ const (
 // serverCapabilities holds the parts of the server's capabilities the
 // client reads.
 type serverCapabilities struct {
-	PositionEncoding   string          `json:"positionEncoding"`
-	TextDocumentSync   json.RawMessage `json:"textDocumentSync"`
-	DefinitionProvider json.RawMessage `json:"definitionProvider"`
-	DiagnosticProvider json.RawMessage `json:"diagnosticProvider"`
+	PositionEncoding           string          `json:"positionEncoding"`
+	TextDocumentSync           json.RawMessage `json:"textDocumentSync"`
+	DefinitionProvider         json.RawMessage `json:"definitionProvider"`
+	DiagnosticProvider         json.RawMessage `json:"diagnosticProvider"`
+	RenameProvider             json.RawMessage `json:"renameProvider"`
+	CodeActionProvider         json.RawMessage `json:"codeActionProvider"`
+	DocumentFormattingProvider json.RawMessage `json:"documentFormattingProvider"`
 }
 
 // syncKind reads textDocumentSync, a number or TextDocumentSyncOptions,

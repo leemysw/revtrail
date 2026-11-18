@@ -4,11 +4,12 @@
 //
 // 成员清单：
 //   - client.go：Client：初始化、文档同步、定义、悬浮、符号、诊断回调。
+//   - refactor.go：重构请求（prepareRename / rename、codeAction 与 resolve、executeCommand、formatting）、WorkspaceEdit 解码与 workspace/applyEdit。
 //   - document_symbols.go：DocumentSymbols：拍平的符号列表。
 //   - jsonrpc.go：Conn：JSON-RPC 收发、调用、通知与取消。
 //   - position.go：ColumnToLSP / ColumnFromLSP：UTF-8 字节列与 UTF-16 / 32 列互转。
 //   - protocol.go：Position、Range、Diagnostic、Location、ParseHover 等。
-//   - *_test.go：行为测试（3 个文件）。
+//   - *_test.go：行为测试（4 个文件）。
 //
 // [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 package lsp

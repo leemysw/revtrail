@@ -1,5 +1,5 @@
 // INPUT: config 最近项目与 assets 图标。
-// OUTPUT: 欢迎窗口：介绍、操作与最近项目列表。
+// OUTPUT: 欢迎窗口：介绍、操作（含 Clone Repository）与最近项目列表。
 // POS: 未打开文件夹时的窗口。
 // PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
 
@@ -34,6 +34,9 @@ func (a *App) welcomeWindow(c *ui.Context) {
 		a.welcomeIntro(c)
 		a.welcomeRecent(c)
 	})
+	if a.git.clone != nil {
+		a.cloneModal(c)
+	}
 }
 
 // The welcome window's size, which does not change, as Xcode's.
@@ -45,7 +48,7 @@ func (a *App) welcomeIntro(c *ui.Context) {
 	ui.Column(c).Grow(1).Shrink(1).FillHeight().Background(theme.Of(c).WelcomeLeft).Padding(16, 28, 18, 28).Children(func() {
 		ui.Box(c).Height(26) // under the window's buttons
 		ui.Column(c).Grow(1).FillWidth().AlignItems(ui.Center).Gap(6).Children(func() {
-			ui.Image(c, appIcon).Size(120, 120)
+			ui.Image(c, appIcon).Size(96, 96)
 			ui.Text(c, "Revtrail").FontSize(widget.FontSize(c, 28)).Bold().TextColor(theme.Of(c).Text).TextAlign(ui.Center)
 			if a.version != "" {
 				ui.Text(c, locales.MsgVersion()+a.version).FontSize(widget.FontSize(c, 13)).TextColor(theme.Of(c).Muted)
@@ -54,6 +57,7 @@ func (a *App) welcomeIntro(c *ui.Context) {
 			ui.Column(c).Gap(2).Width(300).Children(func() {
 				a.welcomeAction(c, glyph.WelcomeOpen, "Open Folder…", "Read the source of a folder", widget.ShortcutLabel("O"), a.openFolderDialog)
 				a.welcomeAction(c, glyph.WelcomeOpen, "Open File…", "Read a single file", "", a.openFileDialog)
+				a.welcomeAction(c, glyph.Git, locales.WelcomeClone(), locales.WelcomeCloneDetail(), "", a.openClone)
 				if last := a.lastFolder(); last != "" {
 					a.welcomeAction(c, glyph.WelcomeReopen, "Reopen "+filepath.Base(last), tildePath(last), "", func() { a.openRecent(last) })
 				}

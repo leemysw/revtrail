@@ -10177,3 +10177,913 @@ func GitWorktreeDeleteDetail() string { return In(i18n.Locale()).GitWorktreeDele
 func (msgs Messages) GitWorktreeDeleteDetail() string {
 	return Catalog.Format(msgs.locale, "gitWorktreeDeleteDetail", nil)
 }
+
+// MenuGitCommit says "Commit…"
+// in the language the app shows.
+func MenuGitCommit() string { return In(i18n.Locale()).MenuGitCommit() }
+
+// MenuGitCommit says "Commit…"
+// in the language of msgs.
+func (msgs Messages) MenuGitCommit() string {
+	return Catalog.Format(msgs.locale, "menuGitCommit", nil)
+}
+
+// MenuGitPush says "Push…"
+// in the language the app shows.
+func MenuGitPush() string { return In(i18n.Locale()).MenuGitPush() }
+
+// MenuGitPush says "Push…"
+// in the language of msgs.
+func (msgs Messages) MenuGitPush() string {
+	return Catalog.Format(msgs.locale, "menuGitPush", nil)
+}
+
+// MenuGitUpdate says "Update Project…"
+// in the language the app shows.
+func MenuGitUpdate() string { return In(i18n.Locale()).MenuGitUpdate() }
+
+// MenuGitUpdate says "Update Project…"
+// in the language of msgs.
+func (msgs Messages) MenuGitUpdate() string {
+	return Catalog.Format(msgs.locale, "menuGitUpdate", nil)
+}
+
+// MenuGitPull says "Pull…"
+// in the language the app shows.
+func MenuGitPull() string { return In(i18n.Locale()).MenuGitPull() }
+
+// MenuGitPull says "Pull…"
+// in the language of msgs.
+func (msgs Messages) MenuGitPull() string {
+	return Catalog.Format(msgs.locale, "menuGitPull", nil)
+}
+
+// MenuGitFetch says "Fetch"
+// in the language the app shows.
+func MenuGitFetch() string { return In(i18n.Locale()).MenuGitFetch() }
+
+// MenuGitFetch says "Fetch"
+// in the language of msgs.
+func (msgs Messages) MenuGitFetch() string {
+	return Catalog.Format(msgs.locale, "menuGitFetch", nil)
+}
+
+// MenuGitMerge says "Merge…"
+// in the language the app shows.
+func MenuGitMerge() string { return In(i18n.Locale()).MenuGitMerge() }
+
+// MenuGitMerge says "Merge…"
+// in the language of msgs.
+func (msgs Messages) MenuGitMerge() string {
+	return Catalog.Format(msgs.locale, "menuGitMerge", nil)
+}
+
+// MenuGitRebase says "Rebase…"
+// in the language the app shows.
+func MenuGitRebase() string { return In(i18n.Locale()).MenuGitRebase() }
+
+// MenuGitRebase says "Rebase…"
+// in the language of msgs.
+func (msgs Messages) MenuGitRebase() string {
+	return Catalog.Format(msgs.locale, "menuGitRebase", nil)
+}
+
+// MenuGitResolve says "Resolve Conflicts…"
+// in the language the app shows.
+func MenuGitResolve() string { return In(i18n.Locale()).MenuGitResolve() }
+
+// MenuGitResolve says "Resolve Conflicts…"
+// in the language of msgs.
+func (msgs Messages) MenuGitResolve() string {
+	return Catalog.Format(msgs.locale, "menuGitResolve", nil)
+}
+
+// MenuGitContinue says "Continue %s"
+// in the language the app shows.
+func MenuGitContinue() string { return In(i18n.Locale()).MenuGitContinue() }
+
+// MenuGitContinue says "Continue %s"
+// in the language of msgs.
+func (msgs Messages) MenuGitContinue() string {
+	return Catalog.Format(msgs.locale, "menuGitContinue", nil)
+}
+
+// MenuGitSkip says "Skip Commit"
+// in the language the app shows.
+func MenuGitSkip() string { return In(i18n.Locale()).MenuGitSkip() }
+
+// MenuGitSkip says "Skip Commit"
+// in the language of msgs.
+func (msgs Messages) MenuGitSkip() string {
+	return Catalog.Format(msgs.locale, "menuGitSkip", nil)
+}
+
+// MenuGitAbort says "Abort %s"
+// in the language the app shows.
+func MenuGitAbort() string { return In(i18n.Locale()).MenuGitAbort() }
+
+// MenuGitAbort says "Abort %s"
+// in the language of msgs.
+func (msgs Messages) MenuGitAbort() string {
+	return Catalog.Format(msgs.locale, "menuGitAbort", nil)
+}
+
+// MenuGitBranches says "Branches…"
+// in the language the app shows.
+func MenuGitBranches() string { return In(i18n.Locale()).MenuGitBranches() }
+
+// MenuGitBranches says "Branches…"
+// in the language of msgs.
+func (msgs Messages) MenuGitBranches() string {
+	return Catalog.Format(msgs.locale, "menuGitBranches", nil)
+}
+
+// MenuGitResetHead says "Reset HEAD…"
+// in the language the app shows.
+func MenuGitResetHead() string { return In(i18n.Locale()).MenuGitResetHead() }
+
+// MenuGitResetHead says "Reset HEAD…"
+// in the language of msgs.
+func (msgs Messages) MenuGitResetHead() string {
+	return Catalog.Format(msgs.locale, "menuGitResetHead", nil)
+}
+
+// MenuGitShowLog says "Show Git Log"
+// in the language the app shows.
+func MenuGitShowLog() string { return In(i18n.Locale()).MenuGitShowLog() }
+
+// MenuGitShowLog says "Show Git Log"
+// in the language of msgs.
+func (msgs Messages) MenuGitShowLog() string {
+	return Catalog.Format(msgs.locale, "menuGitShowLog", nil)
+}
+
+// MenuGitPatch says "Patch"
+// in the language the app shows.
+func MenuGitPatch() string { return In(i18n.Locale()).MenuGitPatch() }
+
+// MenuGitPatch says "Patch"
+// in the language of msgs.
+func (msgs Messages) MenuGitPatch() string {
+	return Catalog.Format(msgs.locale, "menuGitPatch", nil)
+}
+
+// MenuGitCopyPatch says "Copy as Patch to Clipboard"
+// in the language the app shows.
+func MenuGitCopyPatch() string { return In(i18n.Locale()).MenuGitCopyPatch() }
+
+// MenuGitCopyPatch says "Copy as Patch to Clipboard"
+// in the language of msgs.
+func (msgs Messages) MenuGitCopyPatch() string {
+	return Catalog.Format(msgs.locale, "menuGitCopyPatch", nil)
+}
+
+// MenuGitApplyPatch says "Apply Patch…"
+// in the language the app shows.
+func MenuGitApplyPatch() string { return In(i18n.Locale()).MenuGitApplyPatch() }
+
+// MenuGitApplyPatch says "Apply Patch…"
+// in the language of msgs.
+func (msgs Messages) MenuGitApplyPatch() string {
+	return Catalog.Format(msgs.locale, "menuGitApplyPatch", nil)
+}
+
+// MenuGitApplyClipboard says "Apply Patch from Clipboard"
+// in the language the app shows.
+func MenuGitApplyClipboard() string { return In(i18n.Locale()).MenuGitApplyClipboard() }
+
+// MenuGitApplyClipboard says "Apply Patch from Clipboard"
+// in the language of msgs.
+func (msgs Messages) MenuGitApplyClipboard() string {
+	return Catalog.Format(msgs.locale, "menuGitApplyClipboard", nil)
+}
+
+// MenuGitUncommitted says "Uncommitted Changes"
+// in the language the app shows.
+func MenuGitUncommitted() string { return In(i18n.Locale()).MenuGitUncommitted() }
+
+// MenuGitUncommitted says "Uncommitted Changes"
+// in the language of msgs.
+func (msgs Messages) MenuGitUncommitted() string {
+	return Catalog.Format(msgs.locale, "menuGitUncommitted", nil)
+}
+
+// MenuGitUnstash says "Unstash Changes…"
+// in the language the app shows.
+func MenuGitUnstash() string { return In(i18n.Locale()).MenuGitUnstash() }
+
+// MenuGitUnstash says "Unstash Changes…"
+// in the language of msgs.
+func (msgs Messages) MenuGitUnstash() string {
+	return Catalog.Format(msgs.locale, "menuGitUnstash", nil)
+}
+
+// MenuGitShowLocal says "Show Local Changes"
+// in the language the app shows.
+func MenuGitShowLocal() string { return In(i18n.Locale()).MenuGitShowLocal() }
+
+// MenuGitShowLocal says "Show Local Changes"
+// in the language of msgs.
+func (msgs Messages) MenuGitShowLocal() string {
+	return Catalog.Format(msgs.locale, "menuGitShowLocal", nil)
+}
+
+// MenuGitCurrentFile says "Current File"
+// in the language the app shows.
+func MenuGitCurrentFile() string { return In(i18n.Locale()).MenuGitCurrentFile() }
+
+// MenuGitCurrentFile says "Current File"
+// in the language of msgs.
+func (msgs Messages) MenuGitCurrentFile() string {
+	return Catalog.Format(msgs.locale, "menuGitCurrentFile", nil)
+}
+
+// MenuGitAdd says "Add"
+// in the language the app shows.
+func MenuGitAdd() string { return In(i18n.Locale()).MenuGitAdd() }
+
+// MenuGitAdd says "Add"
+// in the language of msgs.
+func (msgs Messages) MenuGitAdd() string {
+	return Catalog.Format(msgs.locale, "menuGitAdd", nil)
+}
+
+// MenuGitBlame says "Annotate with Git Blame"
+// in the language the app shows.
+func MenuGitBlame() string { return In(i18n.Locale()).MenuGitBlame() }
+
+// MenuGitBlame says "Annotate with Git Blame"
+// in the language of msgs.
+func (msgs Messages) MenuGitBlame() string {
+	return Catalog.Format(msgs.locale, "menuGitBlame", nil)
+}
+
+// MenuGitCompareBranch says "Compare with Branch…"
+// in the language the app shows.
+func MenuGitCompareBranch() string { return In(i18n.Locale()).MenuGitCompareBranch() }
+
+// MenuGitCompareBranch says "Compare with Branch…"
+// in the language of msgs.
+func (msgs Messages) MenuGitCompareBranch() string {
+	return Catalog.Format(msgs.locale, "menuGitCompareBranch", nil)
+}
+
+// MenuGitShowHistory says "Show History"
+// in the language the app shows.
+func MenuGitShowHistory() string { return In(i18n.Locale()).MenuGitShowHistory() }
+
+// MenuGitShowHistory says "Show History"
+// in the language of msgs.
+func (msgs Messages) MenuGitShowHistory() string {
+	return Catalog.Format(msgs.locale, "menuGitShowHistory", nil)
+}
+
+// MenuGitRemotes says "Manage Remotes…"
+// in the language the app shows.
+func MenuGitRemotes() string { return In(i18n.Locale()).MenuGitRemotes() }
+
+// MenuGitRemotes says "Manage Remotes…"
+// in the language of msgs.
+func (msgs Messages) MenuGitRemotes() string {
+	return Catalog.Format(msgs.locale, "menuGitRemotes", nil)
+}
+
+// MenuGitClone says "Clone…"
+// in the language the app shows.
+func MenuGitClone() string { return In(i18n.Locale()).MenuGitClone() }
+
+// MenuGitClone says "Clone…"
+// in the language of msgs.
+func (msgs Messages) MenuGitClone() string {
+	return Catalog.Format(msgs.locale, "menuGitClone", nil)
+}
+
+// CommandGitApplyClipboardPatch says "Git: Apply Patch from Clipboard"
+// in the language the app shows.
+func CommandGitApplyClipboardPatch() string { return In(i18n.Locale()).CommandGitApplyClipboardPatch() }
+
+// CommandGitApplyClipboardPatch says "Git: Apply Patch from Clipboard"
+// in the language of msgs.
+func (msgs Messages) CommandGitApplyClipboardPatch() string {
+	return Catalog.Format(msgs.locale, "commandGitApplyClipboardPatch", nil)
+}
+
+// CommandGitMerge says "Git: Merge…"
+// in the language the app shows.
+func CommandGitMerge() string { return In(i18n.Locale()).CommandGitMerge() }
+
+// CommandGitMerge says "Git: Merge…"
+// in the language of msgs.
+func (msgs Messages) CommandGitMerge() string {
+	return Catalog.Format(msgs.locale, "commandGitMerge", nil)
+}
+
+// CommandGitRebase says "Git: Rebase…"
+// in the language the app shows.
+func CommandGitRebase() string { return In(i18n.Locale()).CommandGitRebase() }
+
+// CommandGitRebase says "Git: Rebase…"
+// in the language of msgs.
+func (msgs Messages) CommandGitRebase() string {
+	return Catalog.Format(msgs.locale, "commandGitRebase", nil)
+}
+
+// CommandGitNewBranch says "Git: New Branch…"
+// in the language the app shows.
+func CommandGitNewBranch() string { return In(i18n.Locale()).CommandGitNewBranch() }
+
+// CommandGitNewBranch says "Git: New Branch…"
+// in the language of msgs.
+func (msgs Messages) CommandGitNewBranch() string {
+	return Catalog.Format(msgs.locale, "commandGitNewBranch", nil)
+}
+
+// CommandGitNewTag says "Git: New Tag…"
+// in the language the app shows.
+func CommandGitNewTag() string { return In(i18n.Locale()).CommandGitNewTag() }
+
+// CommandGitNewTag says "Git: New Tag…"
+// in the language of msgs.
+func (msgs Messages) CommandGitNewTag() string {
+	return Catalog.Format(msgs.locale, "commandGitNewTag", nil)
+}
+
+// CommandGitManageRemotes says "Git: Manage Remotes…"
+// in the language the app shows.
+func CommandGitManageRemotes() string { return In(i18n.Locale()).CommandGitManageRemotes() }
+
+// CommandGitManageRemotes says "Git: Manage Remotes…"
+// in the language of msgs.
+func (msgs Messages) CommandGitManageRemotes() string {
+	return Catalog.Format(msgs.locale, "commandGitManageRemotes", nil)
+}
+
+// CommandGitClone says "Git: Clone…"
+// in the language the app shows.
+func CommandGitClone() string { return In(i18n.Locale()).CommandGitClone() }
+
+// CommandGitClone says "Git: Clone…"
+// in the language of msgs.
+func (msgs Messages) CommandGitClone() string {
+	return Catalog.Format(msgs.locale, "commandGitClone", nil)
+}
+
+// CommandGitRollback says "Git: Rollback…"
+// in the language the app shows.
+func CommandGitRollback() string { return In(i18n.Locale()).CommandGitRollback() }
+
+// CommandGitRollback says "Git: Rollback…"
+// in the language of msgs.
+func (msgs Messages) CommandGitRollback() string {
+	return Catalog.Format(msgs.locale, "commandGitRollback", nil)
+}
+
+// CommandGitCommitFile says "Git: Commit File…"
+// in the language the app shows.
+func CommandGitCommitFile() string { return In(i18n.Locale()).CommandGitCommitFile() }
+
+// CommandGitCommitFile says "Git: Commit File…"
+// in the language of msgs.
+func (msgs Messages) CommandGitCommitFile() string {
+	return Catalog.Format(msgs.locale, "commandGitCommitFile", nil)
+}
+
+// CommandGitAddFile says "Git: Add File"
+// in the language the app shows.
+func CommandGitAddFile() string { return In(i18n.Locale()).CommandGitAddFile() }
+
+// CommandGitAddFile says "Git: Add File"
+// in the language of msgs.
+func (msgs Messages) CommandGitAddFile() string {
+	return Catalog.Format(msgs.locale, "commandGitAddFile", nil)
+}
+
+// CommandGitShowDiff says "Git: Show Diff"
+// in the language the app shows.
+func CommandGitShowDiff() string { return In(i18n.Locale()).CommandGitShowDiff() }
+
+// CommandGitShowDiff says "Git: Show Diff"
+// in the language of msgs.
+func (msgs Messages) CommandGitShowDiff() string {
+	return Catalog.Format(msgs.locale, "commandGitShowDiff", nil)
+}
+
+// CommandGitRollbackFile says "Git: Rollback File…"
+// in the language the app shows.
+func CommandGitRollbackFile() string { return In(i18n.Locale()).CommandGitRollbackFile() }
+
+// CommandGitRollbackFile says "Git: Rollback File…"
+// in the language of msgs.
+func (msgs Messages) CommandGitRollbackFile() string {
+	return Catalog.Format(msgs.locale, "commandGitRollbackFile", nil)
+}
+
+// GitRemotesTitle says "Git Remotes"
+// in the language the app shows.
+func GitRemotesTitle() string { return In(i18n.Locale()).GitRemotesTitle() }
+
+// GitRemotesTitle says "Git Remotes"
+// in the language of msgs.
+func (msgs Messages) GitRemotesTitle() string {
+	return Catalog.Format(msgs.locale, "gitRemotesTitle", nil)
+}
+
+// GitDefineRemote says "Define Remote"
+// in the language the app shows.
+func GitDefineRemote() string { return In(i18n.Locale()).GitDefineRemote() }
+
+// GitDefineRemote says "Define Remote"
+// in the language of msgs.
+func (msgs Messages) GitDefineRemote() string {
+	return Catalog.Format(msgs.locale, "gitDefineRemote", nil)
+}
+
+// GitEditRemote says "Edit Remote"
+// in the language the app shows.
+func GitEditRemote() string { return In(i18n.Locale()).GitEditRemote() }
+
+// GitEditRemote says "Edit Remote"
+// in the language of msgs.
+func (msgs Messages) GitEditRemote() string {
+	return Catalog.Format(msgs.locale, "gitEditRemote", nil)
+}
+
+// GitRemoveRemote says "Remove Remote"
+// in the language the app shows.
+func GitRemoveRemote() string { return In(i18n.Locale()).GitRemoveRemote() }
+
+// GitRemoveRemote says "Remove Remote"
+// in the language of msgs.
+func (msgs Messages) GitRemoveRemote() string {
+	return Catalog.Format(msgs.locale, "gitRemoveRemote", nil)
+}
+
+// GitRemoteName says "Name"
+// in the language the app shows.
+func GitRemoteName() string { return In(i18n.Locale()).GitRemoteName() }
+
+// GitRemoteName says "Name"
+// in the language of msgs.
+func (msgs Messages) GitRemoteName() string {
+	return Catalog.Format(msgs.locale, "gitRemoteName", nil)
+}
+
+// GitRemoteURL says "URL"
+// in the language the app shows.
+func GitRemoteURL() string { return In(i18n.Locale()).GitRemoteURL() }
+
+// GitRemoteURL says "URL"
+// in the language of msgs.
+func (msgs Messages) GitRemoteURL() string {
+	return Catalog.Format(msgs.locale, "gitRemoteURL", nil)
+}
+
+// GitNoRemotes says "No remotes"
+// in the language the app shows.
+func GitNoRemotes() string { return In(i18n.Locale()).GitNoRemotes() }
+
+// GitNoRemotes says "No remotes"
+// in the language of msgs.
+func (msgs Messages) GitNoRemotes() string {
+	return Catalog.Format(msgs.locale, "gitNoRemotes", nil)
+}
+
+// MsgOK says "OK"
+// in the language the app shows.
+func MsgOK() string { return In(i18n.Locale()).MsgOK() }
+
+// MsgOK says "OK"
+// in the language of msgs.
+func (msgs Messages) MsgOK() string {
+	return Catalog.Format(msgs.locale, "msgOK", nil)
+}
+
+// GitCloneTitle says "Clone Repository"
+// in the language the app shows.
+func GitCloneTitle() string { return In(i18n.Locale()).GitCloneTitle() }
+
+// GitCloneTitle says "Clone Repository"
+// in the language of msgs.
+func (msgs Messages) GitCloneTitle() string {
+	return Catalog.Format(msgs.locale, "gitCloneTitle", nil)
+}
+
+// GitCloneDirectory says "Directory:"
+// in the language the app shows.
+func GitCloneDirectory() string { return In(i18n.Locale()).GitCloneDirectory() }
+
+// GitCloneDirectory says "Directory:"
+// in the language of msgs.
+func (msgs Messages) GitCloneDirectory() string {
+	return Catalog.Format(msgs.locale, "gitCloneDirectory", nil)
+}
+
+// GitCloneAction says "Clone"
+// in the language the app shows.
+func GitCloneAction() string { return In(i18n.Locale()).GitCloneAction() }
+
+// GitCloneAction says "Clone"
+// in the language of msgs.
+func (msgs Messages) GitCloneAction() string {
+	return Catalog.Format(msgs.locale, "gitCloneAction", nil)
+}
+
+// GitCloning says "Cloning…"
+// in the language the app shows.
+func GitCloning() string { return In(i18n.Locale()).GitCloning() }
+
+// GitCloning says "Cloning…"
+// in the language of msgs.
+func (msgs Messages) GitCloning() string {
+	return Catalog.Format(msgs.locale, "gitCloning", nil)
+}
+
+// GitMergeIntoTitle says "Merge into %s"
+// in the language the app shows.
+func GitMergeIntoTitle() string { return In(i18n.Locale()).GitMergeIntoTitle() }
+
+// GitMergeIntoTitle says "Merge into %s"
+// in the language of msgs.
+func (msgs Messages) GitMergeIntoTitle() string {
+	return Catalog.Format(msgs.locale, "gitMergeIntoTitle", nil)
+}
+
+// GitRebaseOntoTitle says "Rebase %s onto"
+// in the language the app shows.
+func GitRebaseOntoTitle() string { return In(i18n.Locale()).GitRebaseOntoTitle() }
+
+// GitRebaseOntoTitle says "Rebase %s onto"
+// in the language of msgs.
+func (msgs Messages) GitRebaseOntoTitle() string {
+	return Catalog.Format(msgs.locale, "gitRebaseOntoTitle", nil)
+}
+
+// GitAddedFile says "Added %s to Git."
+// in the language the app shows.
+func GitAddedFile() string { return In(i18n.Locale()).GitAddedFile() }
+
+// GitAddedFile says "Added %s to Git."
+// in the language of msgs.
+func (msgs Messages) GitAddedFile() string {
+	return Catalog.Format(msgs.locale, "gitAddedFile", nil)
+}
+
+// GitNoFileChanges says "The file has no changes."
+// in the language the app shows.
+func GitNoFileChanges() string { return In(i18n.Locale()).GitNoFileChanges() }
+
+// GitNoFileChanges says "The file has no changes."
+// in the language of msgs.
+func (msgs Messages) GitNoFileChanges() string {
+	return Catalog.Format(msgs.locale, "gitNoFileChanges", nil)
+}
+
+// GitNoClipboardPatch says "The clipboard holds no patch."
+// in the language the app shows.
+func GitNoClipboardPatch() string { return In(i18n.Locale()).GitNoClipboardPatch() }
+
+// GitNoClipboardPatch says "The clipboard holds no patch."
+// in the language of msgs.
+func (msgs Messages) GitNoClipboardPatch() string {
+	return Catalog.Format(msgs.locale, "gitNoClipboardPatch", nil)
+}
+
+// WelcomeClone says "Clone Repository…"
+// in the language the app shows.
+func WelcomeClone() string { return In(i18n.Locale()).WelcomeClone() }
+
+// WelcomeClone says "Clone Repository…"
+// in the language of msgs.
+func (msgs Messages) WelcomeClone() string {
+	return Catalog.Format(msgs.locale, "welcomeClone", nil)
+}
+
+// WelcomeCloneDetail says "Get a project from a Git URL"
+// in the language the app shows.
+func WelcomeCloneDetail() string { return In(i18n.Locale()).WelcomeCloneDetail() }
+
+// WelcomeCloneDetail says "Get a project from a Git URL"
+// in the language of msgs.
+func (msgs Messages) WelcomeCloneDetail() string {
+	return Catalog.Format(msgs.locale, "welcomeCloneDetail", nil)
+}
+
+// CommandRename says "Rename…"
+// in the language the app shows.
+func CommandRename() string { return In(i18n.Locale()).CommandRename() }
+
+// CommandRename says "Rename…"
+// in the language of msgs.
+func (msgs Messages) CommandRename() string {
+	return Catalog.Format(msgs.locale, "commandRename", nil)
+}
+
+// CommandRefactorThis says "Refactor This…"
+// in the language the app shows.
+func CommandRefactorThis() string { return In(i18n.Locale()).CommandRefactorThis() }
+
+// CommandRefactorThis says "Refactor This…"
+// in the language of msgs.
+func (msgs Messages) CommandRefactorThis() string {
+	return Catalog.Format(msgs.locale, "commandRefactorThis", nil)
+}
+
+// CommandExtractVariable says "Extract Variable…"
+// in the language the app shows.
+func CommandExtractVariable() string { return In(i18n.Locale()).CommandExtractVariable() }
+
+// CommandExtractVariable says "Extract Variable…"
+// in the language of msgs.
+func (msgs Messages) CommandExtractVariable() string {
+	return Catalog.Format(msgs.locale, "commandExtractVariable", nil)
+}
+
+// CommandExtractMethod says "Extract Method…"
+// in the language the app shows.
+func CommandExtractMethod() string { return In(i18n.Locale()).CommandExtractMethod() }
+
+// CommandExtractMethod says "Extract Method…"
+// in the language of msgs.
+func (msgs Messages) CommandExtractMethod() string {
+	return Catalog.Format(msgs.locale, "commandExtractMethod", nil)
+}
+
+// CommandInline says "Inline…"
+// in the language the app shows.
+func CommandInline() string { return In(i18n.Locale()).CommandInline() }
+
+// CommandInline says "Inline…"
+// in the language of msgs.
+func (msgs Messages) CommandInline() string {
+	return Catalog.Format(msgs.locale, "commandInline", nil)
+}
+
+// CommandShowContextActions says "Show Context Actions"
+// in the language the app shows.
+func CommandShowContextActions() string { return In(i18n.Locale()).CommandShowContextActions() }
+
+// CommandShowContextActions says "Show Context Actions"
+// in the language of msgs.
+func (msgs Messages) CommandShowContextActions() string {
+	return Catalog.Format(msgs.locale, "commandShowContextActions", nil)
+}
+
+// CommandOptimizeImports says "Optimize Imports"
+// in the language the app shows.
+func CommandOptimizeImports() string { return In(i18n.Locale()).CommandOptimizeImports() }
+
+// CommandOptimizeImports says "Optimize Imports"
+// in the language of msgs.
+func (msgs Messages) CommandOptimizeImports() string {
+	return Catalog.Format(msgs.locale, "commandOptimizeImports", nil)
+}
+
+// CommandReformatCode says "Reformat Code"
+// in the language the app shows.
+func CommandReformatCode() string { return In(i18n.Locale()).CommandReformatCode() }
+
+// CommandReformatCode says "Reformat Code"
+// in the language of msgs.
+func (msgs Messages) CommandReformatCode() string {
+	return Catalog.Format(msgs.locale, "commandReformatCode", nil)
+}
+
+// MenuCode says "Code"
+// in the language the app shows.
+func MenuCode() string { return In(i18n.Locale()).MenuCode() }
+
+// MenuCode says "Code"
+// in the language of msgs.
+func (msgs Messages) MenuCode() string {
+	return Catalog.Format(msgs.locale, "menuCode", nil)
+}
+
+// MenuRefactor says "Refactor"
+// in the language the app shows.
+func MenuRefactor() string { return In(i18n.Locale()).MenuRefactor() }
+
+// MenuRefactor says "Refactor"
+// in the language of msgs.
+func (msgs Messages) MenuRefactor() string {
+	return Catalog.Format(msgs.locale, "menuRefactor", nil)
+}
+
+// MenuExtract says "Extract/Introduce"
+// in the language the app shows.
+func MenuExtract() string { return In(i18n.Locale()).MenuExtract() }
+
+// MenuExtract says "Extract/Introduce"
+// in the language of msgs.
+func (msgs Messages) MenuExtract() string {
+	return Catalog.Format(msgs.locale, "menuExtract", nil)
+}
+
+// MenuVariable says "Variable…"
+// in the language the app shows.
+func MenuVariable() string { return In(i18n.Locale()).MenuVariable() }
+
+// MenuVariable says "Variable…"
+// in the language of msgs.
+func (msgs Messages) MenuVariable() string {
+	return Catalog.Format(msgs.locale, "menuVariable", nil)
+}
+
+// MenuMethod says "Method…"
+// in the language the app shows.
+func MenuMethod() string { return In(i18n.Locale()).MenuMethod() }
+
+// MenuMethod says "Method…"
+// in the language of msgs.
+func (msgs Messages) MenuMethod() string {
+	return Catalog.Format(msgs.locale, "menuMethod", nil)
+}
+
+// RefactorReadOnly says "The file is read-only."
+// in the language the app shows.
+func RefactorReadOnly() string { return In(i18n.Locale()).RefactorReadOnly() }
+
+// RefactorReadOnly says "The file is read-only."
+// in the language of msgs.
+func (msgs Messages) RefactorReadOnly() string {
+	return Catalog.Format(msgs.locale, "refactorReadOnly", nil)
+}
+
+// RefactorUnsupported says "The language server of this file does not support this refactoring."
+// in the language the app shows.
+func RefactorUnsupported() string { return In(i18n.Locale()).RefactorUnsupported() }
+
+// RefactorUnsupported says "The language server of this file does not support this refactoring."
+// in the language of msgs.
+func (msgs Messages) RefactorUnsupported() string {
+	return Catalog.Format(msgs.locale, "refactorUnsupported", nil)
+}
+
+// RefactorStale says "The file changed while the refactoring was being prepared. Try again."
+// in the language the app shows.
+func RefactorStale() string { return In(i18n.Locale()).RefactorStale() }
+
+// RefactorStale says "The file changed while the refactoring was being prepared. Try again."
+// in the language of msgs.
+func (msgs Messages) RefactorStale() string {
+	return Catalog.Format(msgs.locale, "refactorStale", nil)
+}
+
+// RefactorCannotPerform says "Cannot perform refactoring."
+// in the language the app shows.
+func RefactorCannotPerform() string { return In(i18n.Locale()).RefactorCannotPerform() }
+
+// RefactorCannotPerform says "Cannot perform refactoring."
+// in the language of msgs.
+func (msgs Messages) RefactorCannotPerform() string {
+	return Catalog.Format(msgs.locale, "refactorCannotPerform", nil)
+}
+
+// RefactorCannotRename says "Cannot perform refactoring: the caret should be on a symbol to rename."
+// in the language the app shows.
+func RefactorCannotRename() string { return In(i18n.Locale()).RefactorCannotRename() }
+
+// RefactorCannotRename says "Cannot perform refactoring: the caret should be on a symbol to rename."
+// in the language of msgs.
+func (msgs Messages) RefactorCannotRename() string {
+	return Catalog.Format(msgs.locale, "refactorCannotRename", nil)
+}
+
+// RefactorPreparing says "Preparing refactoring…"
+// in the language the app shows.
+func RefactorPreparing() string { return In(i18n.Locale()).RefactorPreparing() }
+
+// RefactorPreparing says "Preparing refactoring…"
+// in the language of msgs.
+func (msgs Messages) RefactorPreparing() string {
+	return Catalog.Format(msgs.locale, "refactorPreparing", nil)
+}
+
+// RefactorRenaming says "Renaming…"
+// in the language the app shows.
+func RefactorRenaming() string { return In(i18n.Locale()).RefactorRenaming() }
+
+// RefactorRenaming says "Renaming…"
+// in the language of msgs.
+func (msgs Messages) RefactorRenaming() string {
+	return Catalog.Format(msgs.locale, "refactorRenaming", nil)
+}
+
+// RefactorReformatting says "Reformatting code…"
+// in the language the app shows.
+func RefactorReformatting() string { return In(i18n.Locale()).RefactorReformatting() }
+
+// RefactorReformatting says "Reformatting code…"
+// in the language of msgs.
+func (msgs Messages) RefactorReformatting() string {
+	return Catalog.Format(msgs.locale, "refactorReformatting", nil)
+}
+
+// RefactorRenameTitle says "Rename"
+// in the language the app shows.
+func RefactorRenameTitle() string { return In(i18n.Locale()).RefactorRenameTitle() }
+
+// RefactorRenameTitle says "Rename"
+// in the language of msgs.
+func (msgs Messages) RefactorRenameTitle() string {
+	return Catalog.Format(msgs.locale, "refactorRenameTitle", nil)
+}
+
+// RefactorRenameDetail says "Rename '%s' and its usages to:"
+// in the language the app shows.
+func RefactorRenameDetail() string { return In(i18n.Locale()).RefactorRenameDetail() }
+
+// RefactorRenameDetail says "Rename '%s' and its usages to:"
+// in the language of msgs.
+func (msgs Messages) RefactorRenameDetail() string {
+	return Catalog.Format(msgs.locale, "refactorRenameDetail", nil)
+}
+
+// RefactorRefactor says "Refactor"
+// in the language the app shows.
+func RefactorRefactor() string { return In(i18n.Locale()).RefactorRefactor() }
+
+// RefactorRefactor says "Refactor"
+// in the language of msgs.
+func (msgs Messages) RefactorRefactor() string {
+	return Catalog.Format(msgs.locale, "refactorRefactor", nil)
+}
+
+// RefactorThisTitle says "Refactor This"
+// in the language the app shows.
+func RefactorThisTitle() string { return In(i18n.Locale()).RefactorThisTitle() }
+
+// RefactorThisTitle says "Refactor This"
+// in the language of msgs.
+func (msgs Messages) RefactorThisTitle() string {
+	return Catalog.Format(msgs.locale, "refactorThisTitle", nil)
+}
+
+// ContextActionsTitle says "Context Actions"
+// in the language the app shows.
+func ContextActionsTitle() string { return In(i18n.Locale()).ContextActionsTitle() }
+
+// ContextActionsTitle says "Context Actions"
+// in the language of msgs.
+func (msgs Messages) ContextActionsTitle() string {
+	return Catalog.Format(msgs.locale, "contextActionsTitle", nil)
+}
+
+// RefactorNoActions says "No context actions available here."
+// in the language the app shows.
+func RefactorNoActions() string { return In(i18n.Locale()).RefactorNoActions() }
+
+// RefactorNoActions says "No context actions available here."
+// in the language of msgs.
+func (msgs Messages) RefactorNoActions() string {
+	return Catalog.Format(msgs.locale, "refactorNoActions", nil)
+}
+
+// RefactorImportsOptimized says "Imports are already optimized."
+// in the language the app shows.
+func RefactorImportsOptimized() string { return In(i18n.Locale()).RefactorImportsOptimized() }
+
+// RefactorImportsOptimized says "Imports are already optimized."
+// in the language of msgs.
+func (msgs Messages) RefactorImportsOptimized() string {
+	return Catalog.Format(msgs.locale, "refactorImportsOptimized", nil)
+}
+
+// RefactorAlreadyFormatted says "No lines changed: code is already properly formatted."
+// in the language the app shows.
+func RefactorAlreadyFormatted() string { return In(i18n.Locale()).RefactorAlreadyFormatted() }
+
+// RefactorAlreadyFormatted says "No lines changed: code is already properly formatted."
+// in the language of msgs.
+func (msgs Messages) RefactorAlreadyFormatted() string {
+	return Catalog.Format(msgs.locale, "refactorAlreadyFormatted", nil)
+}
+
+// RefactorReformatted says "Reformatted the file."
+// in the language the app shows.
+func RefactorReformatted() string { return In(i18n.Locale()).RefactorReformatted() }
+
+// RefactorReformatted says "Reformatted the file."
+// in the language of msgs.
+func (msgs Messages) RefactorReformatted() string {
+	return Catalog.Format(msgs.locale, "refactorReformatted", nil)
+}
+
+// RefactorOutsideProject says "The refactoring would change a file outside the project: %s"
+// in the language the app shows.
+func RefactorOutsideProject() string { return In(i18n.Locale()).RefactorOutsideProject() }
+
+// RefactorOutsideProject says "The refactoring would change a file outside the project: %s"
+// in the language of msgs.
+func (msgs Messages) RefactorOutsideProject() string {
+	return Catalog.Format(msgs.locale, "refactorOutsideProject", nil)
+}
+
+// RefactorExists says "%s already exists."
+// in the language the app shows.
+func RefactorExists() string { return In(i18n.Locale()).RefactorExists() }
+
+// RefactorExists says "%s already exists."
+// in the language of msgs.
+func (msgs Messages) RefactorExists() string {
+	return Catalog.Format(msgs.locale, "refactorExists", nil)
+}

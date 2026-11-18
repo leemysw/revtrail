@@ -21,9 +21,9 @@
 //   - commands.go：commands() 命令表、commandNames、命令面板入口与 shell 命令安装。
 //   - command_locale.go：commandLabel：命令的本地化标签。
 //   - keymap.go：IntelliJ 按键表（mac / pc）、命令别名、编辑器绑定与 Copy Path 等小操作。
-//   - menubar.go：菜单栏的 View / Navigate / Git 菜单。
+//   - menubar.go：菜单栏的 View / Navigate / Code / Refactor / Git 菜单；Git 菜单按 IntelliJ 的顺序与子菜单（Patch、Uncommitted Changes、Current File），进行中的操作项只在有操作时出现。
 //   - projects.go：File 菜单与 Dock 最近项目菜单。
-//   - editor_menu.go：编辑器右键菜单中 App 追加的部分（Find Usages、Go To、Copy Path/Reference、Compare with Clipboard、Open In、Git）。
+//   - editor_menu.go：编辑器右键菜单中 App 追加的部分（Show Context Actions、Find Usages、Refactor、Go To、Copy Path/Reference、Compare with Clipboard、Open In、Git）。
 //
 // 编辑器与标签：
 //   - editor_area.go：编辑区布局、分屏放置区、源码视图、行号栏分隔线、改动条、相关项弹窗与检查小部件。
@@ -36,6 +36,7 @@
 //   - recovery.go：崩溃恢复记录的读写。
 //   - session.go：保存 / 恢复标签、分屏、diff 标签与固定状态。
 //   - hover.go：悬浮文档、定义预览与 Cmd 悬停链接。
+//   - refactor.go：语言服务器完成的重构与代码操作（Rename、Refactor This、Extract Variable / Method、Inline、Show Context Actions、Optimize Imports、Reformat Code），WorkspaceEdit 落到缓冲与磁盘，代码操作弹窗。
 //   - markdown.go：Markdown 与 SVG 的预览模式切换、Markdown 渲染视图。
 //   - markdown_github.go：预览按 GitHub 显示 HTML 块、带链接的图片行与 details，链接跳转到网页、标题或项目文件。
 //   - markdown_sync.go：「编辑器和预览」两侧的滚动同步。
@@ -80,6 +81,7 @@
 //   - git_log_window.go：底部 Git 工具窗口：标题行（Log / Worktrees 标签、+、标签列表、⋮、隐藏）；日志的工具栏（文本、分支、用户、日期、路径筛选，IntelliSort，刷新、拣选、视图选项、转到哈希）、提交列表与详情（工具栏 + 按目录的文件树）。
 //   - git_log_branches.go：日志的分支面板：竖排操作条与按目录分组的引用树（收藏、我的分支、定位到日志）。
 //   - git_worktrees.go：Git 工具窗口的 Worktrees 标签页：工作树的列出、新建、打开与删除。
+//   - git_remotes.go：Git 菜单里 IntelliJ 独有入口的操作：Manage Remotes 对话框、Clone 对话框、Merge… / Rebase…、当前文件的 Add / Show Diff / Rollback、从剪贴板应用补丁。
 //   - gitlog.go：日志表格的列定义与行绘制（无表头、24pt 行、圆角选中、合并提交置灰；分支 / 标签以标签图标靠右显示在提交信息列内）。
 //   - history.go：提交标签页（文件列表、统计、信息）与图谱泳道绘制。
 //   - git_rebase.go：交互式变基对话框、Drop / Reword / Fixup 操作。
@@ -104,7 +106,7 @@
 //   - font_settings.go：字体选择弹窗与预览。
 //   - theme.go：(*App).colors、外观切换与界面 / 编辑器主题；通用控件在 internal/widget。
 //   - toolbar.go：顶部工具栏（项目徽标、设置）、状态栏（路径、光标、行分隔符、编码、缩进）、项目选择器与活动指示。
-//   - *_test.go：行为测试（30 个文件）；harness_test.go 是界面测试夹具。
+//   - *_test.go：行为测试（32 个文件）；harness_test.go 是界面测试夹具。
 //
 // [PROTOCOL]: 变更时更新此头部，然后检查 AGENTS.md
 package app

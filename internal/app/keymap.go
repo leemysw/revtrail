@@ -58,6 +58,15 @@ func ideaCommandKeys() map[string]commandKeys {
 			"Copy Path":                  {primary: combo("Cmd+Shift+", "C", ui.Cmd|ui.Shift, ui.KeyC)},
 			"Select in Project View":     {primary: combo("Alt+", "F1", ui.Alt, ui.KeyF1)},
 			"Update Project":             {primary: combo("Cmd+", "T", 0, 0)},
+			"Show Context Actions":       {primary: combo("Alt+", "Enter", ui.Alt, ui.KeyEnter)},
+			"Reformat Code":              {primary: combo("Alt+Cmd+", "L", ui.Alt|ui.Cmd, ui.KeyL)},
+			"Optimize Imports":           {primary: combo("Ctrl+Alt+", "O", ui.Ctrl|ui.Alt, ui.KeyO)},
+			"Refactor This…":             {primary: combo("Ctrl+", "T", ui.Ctrl, ui.KeyT)},
+			"Rename…":                    {primary: combo("Shift+", "F6", ui.Shift, ui.KeyF6)},
+			"Extract Variable…":          {primary: combo("Alt+Cmd+", "V", ui.Alt|ui.Cmd, ui.KeyV)},
+			"Extract Method…":            {primary: combo("Alt+Cmd+", "M", ui.Alt|ui.Cmd, ui.KeyM)},
+			"Inline…":                    {primary: combo("Alt+Cmd+", "N", ui.Alt|ui.Cmd, ui.KeyN)},
+			"Focus Previous Editor":      {}, // Shift+F6 is Rename
 		}
 	}
 	return map[string]commandKeys{
@@ -78,6 +87,15 @@ func ideaCommandKeys() map[string]commandKeys {
 		"Copy Path":                  {primary: combo("Cmd+Shift+", "C", ui.Cmd|ui.Shift, ui.KeyC)},
 		"Select in Project View":     {primary: combo("Alt+", "F1", ui.Alt, ui.KeyF1)},
 		"Update Project":             {primary: combo("Cmd+", "T", 0, 0)},
+		"Show Context Actions":       {primary: combo("Alt+", "Enter", ui.Alt, ui.KeyEnter)},
+		"Reformat Code":              {primary: combo("Ctrl+Alt+", "L", ui.Ctrl|ui.Alt, ui.KeyL)},
+		"Optimize Imports":           {primary: combo("Ctrl+Alt+", "O", ui.Ctrl|ui.Alt, ui.KeyO)},
+		"Refactor This…":             {primary: combo("Ctrl+Alt+Shift+", "T", ui.Ctrl|ui.Alt|ui.Shift, ui.KeyT)},
+		"Rename…":                    {primary: combo("Shift+", "F6", ui.Shift, ui.KeyF6)},
+		"Extract Variable…":          {primary: combo("Ctrl+Alt+", "V", ui.Ctrl|ui.Alt, ui.KeyV)},
+		"Extract Method…":            {primary: combo("Ctrl+Alt+", "M", ui.Ctrl|ui.Alt, ui.KeyM)},
+		"Inline…":                    {primary: combo("Ctrl+Alt+", "N", ui.Ctrl|ui.Alt, ui.KeyN)},
+		"Focus Previous Editor":      {}, // Shift+F6 is Rename
 	}
 }
 
@@ -151,6 +169,14 @@ func ideaEditorBindings() []editor.Binding {
 			b(sh, ui.KeyF2, editor.NoCommand),
 			b(alt, ui.KeyF7, editor.NoCommand),
 			b(alt, ui.KeyF1, editor.NoCommand),
+			// Code and Refactor.
+			b(alt, ui.KeyEnter, editor.NoCommand),
+			b(alt|cmd, ui.KeyL, editor.NoCommand),
+			b(ctrl|alt, ui.KeyO, editor.NoCommand),
+			b(ctrl, ui.KeyT, editor.NoCommand),
+			b(alt|cmd, ui.KeyV, editor.NoCommand),
+			b(alt|cmd, ui.KeyM, editor.NoCommand),
+			b(alt|cmd, ui.KeyN, editor.NoCommand),
 		}
 	}
 	return []editor.Binding{
@@ -182,6 +208,13 @@ func ideaEditorBindings() []editor.Binding {
 		b(alt, ui.Key6, editor.NoCommand),
 		b(alt, ui.Key9, editor.NoCommand),
 		b(alt, ui.Key0, editor.NoCommand),
+		b(alt, ui.KeyEnter, editor.NoCommand),
+		b(ctrl|alt, ui.KeyL, editor.NoCommand),
+		b(ctrl|alt, ui.KeyO, editor.NoCommand),
+		b(ctrl|alt|sh, ui.KeyT, editor.NoCommand),
+		b(ctrl|alt, ui.KeyV, editor.NoCommand),
+		b(ctrl|alt, ui.KeyM, editor.NoCommand),
+		b(ctrl|alt, ui.KeyN, editor.NoCommand),
 	}
 }
 

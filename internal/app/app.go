@@ -96,12 +96,13 @@ type App struct {
 	focusImage       string        // an image preview to give the keyboard to once loaded
 
 	// Navigation.
-	hist         nav.History
-	navSeq       uint64 // bumped by every navigation the user asks for
-	navCancel    context.CancelFunc
-	finding      bool // a navigation request is on its way
-	findingLabel string
-	choices      *defChoices // several definitions to choose from
+	hist          nav.History
+	navSeq        uint64 // bumped by every navigation the user asks for
+	navCancel     context.CancelFunc
+	finding       bool // a navigation request is on its way
+	findingLabel  string
+	choices       *defChoices    // several definitions to choose from
+	refactorPopup *refactorPopup // Refactor This or the context actions
 
 	langs          [langCount]langSlot
 	serverJob      bool
@@ -191,31 +192,35 @@ type doc struct {
 	hex        *hexState
 	preview    *markdownPreview
 
-	loading           bool
-	err               error
-	kind              workspace.Kind
-	size              int64
-	plain             bool
-	gone              bool      // removed or moved away on disk
-	seq               int       // of the latest load, so a stale one is dropped
-	stamp             fileStamp // the file as last read, to skip reading it again
-	lossy             bool      // invalid UTF-8 shown with replacement characters
-	bom               bool
-	diskText          string
-	conflict          bool
-	lspVersion        uint64
-	diagnostics       []editor.Diagnostic
-	diagnosticVersion uint64
-	diagnosed         bool // a server sent diagnostics of the document, even none
-	gitBase           *editor.Buffer
-	gitChanges        *editor.DiffState
-	gitBaseSeq        uint64
-	gitBaseKey        gitBaseRevision // what the committed version was read for; see loadGitBase
-	blameOpen         bool
-	blameLoading      bool
-	blameErr          string
-	blameSeq          uint64
-	blameLines        map[int]git.BlameLine
+	loading     bool
+	err         error
+	kind        workspace.Kind
+	size        int64
+	plain       bool
+	gone        bool      // removed or moved away on disk
+	seq         int       // of the latest load, so a stale one is dropped
+	stamp       fileStamp // the file as last read, to skip reading it again
+	lossy       bool      // invalid UTF-8 shown with replacement characters
+	bom         bool
+	diskText    string
+	conflict    bool
+	lspVersion  uint64
+	diagnostics []editor.Diagnostic
+	// lspDiagnostics are the server's, at lspDiagnosticVersion, which go
+	// back to it to ask for their fixes.
+	lspDiagnostics       []lsp.Diagnostic
+	lspDiagnosticVersion uint64
+	diagnosticVersion    uint64
+	diagnosed            bool // a server sent diagnostics of the document, even none
+	gitBase              *editor.Buffer
+	gitChanges           *editor.DiffState
+	gitBaseSeq           uint64
+	gitBaseKey           gitBaseRevision // what the committed version was read for; see loadGitBase
+	blameOpen            bool
+	blameLoading         bool
+	blameErr             string
+	blameSeq             uint64
+	blameLines           map[int]git.BlameLine
 }
 
 type draftCache struct {

@@ -6,6 +6,11 @@ User-facing changes are grouped by release.
 
 ### Added
 
+- Refactor code through the language server, with IntelliJ's keys and menus: **Rename…** (Shift+F6) renames a symbol and its usages across the project; **Refactor This…** (Ctrl+T) lists Rename and the server's refactorings at the caret; **Extract Variable…** (Alt+Cmd+V), **Extract Method…** (Alt+Cmd+M) and **Inline…** (Alt+Cmd+N) run directly; **Show Context Actions** (Alt+Enter) lists quick fixes and refactorings; **Optimize Imports** (Ctrl+Alt+O) and **Reformat Code** (Alt+Cmd+L) tidy the file. They are in the new Code and Refactor menus and the editor's menu; open files change as one undo step. Focus Previous Editor no longer has Shift+F6.
+- The Git menu follows IntelliJ's: Commit, Push, Update Project, Pull and Fetch; Merge… and Rebase…; Branches, New Branch, New Tag and Reset HEAD; Show Git Log; the Patch, Uncommitted Changes and Current File submenus; and the items of a merge or rebase in progress while one is.
+- **Git › Manage Remotes…** lists the repository's remotes and adds, edits and removes them.
+- **Git › Clone…**, also on the welcome window, clones a repository into a folder named after it and opens it.
+- **Git › Current File › Add** puts the open file under version control, and **Apply Patch from Clipboard** applies a copied patch.
 - Ask whether to stash local changes (Smart Checkout), discard them (Force Checkout), or stop, when a checkout or merge would overwrite them; Update and rebase set local changes aside and restore them automatically.
 - Restore a deleted branch, or delete the branch it tracked, from the notice that confirms the deletion.
 - Undo the latest unpushed commit from the log, keeping its changes and returning its message to the commit field.

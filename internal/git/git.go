@@ -1,5 +1,5 @@
 // INPUT: git 可执行文件与仓库根。
-// OUTPUT: Command / Network / run：统一环境的 git 进程；状态解析与 Change。
+// OUTPUT: Command / Network / run：统一环境的 git 进程；状态解析与 Change；Add。
 // POS: 本包唯一启动 git 进程的地方（arch 测试约束）。
 // PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
 
@@ -90,6 +90,13 @@ func Read(ctx context.Context, dir string) (root, branch string, changes []Chang
 		return "", "", nil, err
 	}
 	return root, branch, changes, nil
+}
+
+// Add puts paths, relative to root, under version control, as IntelliJ's
+// Add: git add.
+func Add(ctx context.Context, root string, paths ...string) error {
+	_, err := Command(ctx, root, append([]string{"add", "--"}, paths...)...)
+	return err
 }
 
 // CurrentBranch is the branch HEAD is on, or its short hash when detached.

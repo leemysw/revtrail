@@ -27,7 +27,7 @@ revtrail/
     ├── git/                 #   git 命令的全部读写；git 进程只在 git.go 启动
     ├── languages/           #   gopls、tsrs、clangd、cmake 语言服务器的查找、启动与托管安装
     ├── langserver/          #   单个语言服务器的生命周期、文档同步与诊断
-    ├── lsp/                 #   LSP 客户端与 JSON-RPC、位置编码换算
+    ├── lsp/                 #   LSP 客户端与 JSON-RPC、重构请求、位置编码换算
     ├── search/              #   ripgrep 文本搜索、文件列举与模糊排序
     ├── terminalide/         #   把编辑器选区共享给终端里的 Claude Code / Codex
     ├── tasks/               #   go build / go test 任务

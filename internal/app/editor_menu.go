@@ -1,5 +1,5 @@
 // INPUT: 编辑器状态、命令表与 git 改动。
-// OUTPUT: 编辑器右键菜单中 App 追加的部分（Find Usages、Go To、Copy Path/Reference、Compare with Clipboard、Open In、Git）。
+// OUTPUT: 编辑器右键菜单中 App 追加的部分（Show Context Actions、Find Usages、Refactor、Go To、Copy Path/Reference、Compare with Clipboard、Open In、Git）。
 // POS: 按 IntelliJ 顺序排列；mygo 自带的编辑区块固定在其前。
 // PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
 
@@ -33,9 +33,13 @@ func (a *App) commandItem(m *ui.Menu, name, label string, disabled bool, run fun
 }
 
 // editorMenu is what Revtrail adds to the editor's menu after the
-// editing commands, in the order of IntelliJ's: Find Usages, Go To,
+// editing commands, in the order of IntelliJ's: Show Context Actions,
+// Find Usages, Refactor, Go To,
 // Copy Path/Reference, Compare with Clipboard, Open In and Git.
 func (a *App) editorMenu(menu *ui.Menu, g *group, d *doc, st *editor.State) {
+	at := func(fn func()) func() { return func() { a.focus = g; fn() } }
+	a.commandItem(menu, "Show Context Actions", commandLabel("Show Context Actions"), st.ReadOnly, at(a.showContextActions))
+	menu.Separator()
 	a.commandItem(menu, "Find Usages", commandLabel("Find Usages"), false, func() {
 		a.focus = g
 		a.findUsagesAt(false, g.pointerAnchor, g.pointerInEditor)
@@ -44,6 +48,17 @@ func (a *App) editorMenu(menu *ui.Menu, g *group, d *doc, st *editor.State) {
 		a.focus = g
 		a.findUsagesAt(true, g.pointerAnchor, g.pointerInEditor)
 	}
+	menu.Submenu(locales.MenuRefactor(), func(sub *ui.Menu) {
+		a.commandItem(sub, "Refactor This…", commandLabel("Refactor This…"), st.ReadOnly, at(a.refactorThis))
+		sub.Separator()
+		a.commandItem(sub, "Rename…", commandLabel("Rename…"), st.ReadOnly, at(a.renameSymbol))
+		sub.Separator()
+		sub.Submenu(locales.MenuExtract(), func(ex *ui.Menu) {
+			a.commandItem(ex, "Extract Variable…", locales.MenuVariable(), st.ReadOnly, at(a.extractVariable))
+			a.commandItem(ex, "Extract Method…", locales.MenuMethod(), st.ReadOnly, at(a.extractMethod))
+		})
+		a.commandItem(sub, "Inline…", commandLabel("Inline…"), st.ReadOnly, at(a.inlineSymbol))
+	})
 	menu.Submenu(locales.EditorGoTo(), func(sub *ui.Menu) {
 		a.commandItem(sub, "Go to Definition", locales.EditorDeclaration(), st.OnDefinition == nil, func() {
 			a.focus = g

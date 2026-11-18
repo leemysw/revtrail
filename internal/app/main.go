@@ -428,7 +428,7 @@ func Main() {
 			currentApp, currentWin := current.app, current.win
 			mygo.App.SetMenu(mygo.NewMenu([]*mygo.MenuItem{
 				appMenu(currentApp), currentApp.fileMenu(currentWin.Update), {Role: mygo.RoleEditMenu},
-				currentApp.viewMenu(currentWin.Update), currentApp.navigateMenu(currentWin.Update), currentApp.gitMenu(currentWin.Update),
+				currentApp.viewMenu(currentWin.Update), currentApp.navigateMenu(currentWin.Update), currentApp.codeMenu(currentWin.Update), currentApp.refactorMenu(currentWin.Update), currentApp.gitMenu(currentWin.Update),
 				projectWindowMenu(current, projects),
 			}))
 			mygo.App.Dock.SetMenu(mygo.NewMenu(dockRecentItems(cfg.Recent, func(path string) {

@@ -171,8 +171,14 @@ func (a *App) view(c *ui.Context) {
 		a.actionConfirm.dialog(c.Key("destructive-confirmation"))
 	case a.git.prompt != nil:
 		a.gitPromptModal(c)
+	case a.refactorPopup != nil:
+		a.refactorPopupView(c)
 	case a.git.choice != nil:
 		a.gitChoiceModal(c)
+	case a.git.remoteDialog != nil:
+		a.remotesModal(c)
+	case a.git.clone != nil:
+		a.cloneModal(c)
 	case a.git.rebase != nil:
 		a.rebaseModal(c)
 	case a.git.stashes.open:

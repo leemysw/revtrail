@@ -25,7 +25,8 @@ func TestEditorGroupKeyboardNavigation(t *testing.T) {
 	if h.a.focus != left || h.a.activeEditor().Cursor() != 2 {
 		t.Fatalf("next editor: focus=%d left=%d cursor=%d pending=%v", h.a.focus.id, left.id, h.a.activeEditor().Cursor(), h.a.focusGroupTarget)
 	}
-	h.tt.Key(ui.Shift, ui.KeyF6)
+	h.a.runCommand("Focus Previous Editor") // Shift+F6 is Rename
+	h.tt.Frame()
 	h.tt.Frame()
 	if h.a.focus != right || h.a.activeEditor().Cursor() != 3 {
 		t.Fatal("previous editor did not wrap preserving cursor")
@@ -58,7 +59,8 @@ func TestEditorGroupMoveRemovesEmptySource(t *testing.T) {
 		t.Fatal("empty source not removed safely")
 	}
 	h.tt.Key(0, ui.KeyF6)
-	h.tt.Key(ui.Shift, ui.KeyF6)
+	h.a.runCommand("Focus Previous Editor") // Shift+F6 is Rename
+	h.tt.Frame()
 	h.a.moveTabToNextEditor()
 	if h.a.focus != original || !original.has(d.path) {
 		t.Fatal("single-group no-op changed tabs")
@@ -110,7 +112,8 @@ func TestEditorGroupFocusNonTextViews(t *testing.T) {
 			if sourceDoc.buf.String() != "source text" || h.a.focus != destination {
 				t.Fatal("typing reached the previous editor")
 			}
-			h.tt.Key(ui.Shift, ui.KeyF6)
+			h.a.runCommand("Focus Previous Editor") // Shift+F6 is Rename
+			h.tt.Frame()
 			h.tt.Frame()
 			h.tt.Frame()
 			if h.a.focus != source || !originalEditor.Focused() {
