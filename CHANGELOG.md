@@ -4,6 +4,8 @@ User-facing changes, newest first. Each release has the same notes in English an
 
 ## Unreleased
 
+## [0.1.1] - 2026-11-18
+
 ### English
 
 - Settings › AI shows the saved API key as its first and last characters with dots between, instead of an empty field.
