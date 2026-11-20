@@ -47,10 +47,10 @@ func (a *App) toolbar(c *ui.Context) {
 			a.branchButton(c)
 		}
 		if a.git.root != "" {
-			if widget.IconButtonWithState(c, glyph.Pull, locales.BranchUpdate(), locales.BranchUpdate()+" ("+widget.KeyLabel("Cmd+", "T")+")", false, a.git.busy || len(a.tracked()) == 0, 5).Clicked() {
+			if widget.IconButtonWithState(c, glyph.Pull, locales.BranchUpdate(), locales.BranchUpdate()+" ("+widget.KeyLabel("Cmd+", "T")+")", false, a.gitBlocked() || len(a.tracked()) == 0, 5).Clicked() {
 				a.reviewUpdate()
 			}
-			if widget.IconButtonWithState(c, glyph.Push, locales.BranchPush(), locales.BranchPush()+" ("+widget.KeyLabel("Shift+Cmd+", "K")+")", false, a.git.busy && !a.git.autoFetching, 5).Clicked() {
+			if widget.IconButtonWithState(c, glyph.Push, locales.BranchPush(), locales.BranchPush()+" ("+widget.KeyLabel("Shift+Cmd+", "K")+")", false, a.gitBlocked(), 5).Clicked() {
 				a.reviewPush()
 			}
 		} else {

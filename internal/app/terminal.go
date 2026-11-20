@@ -477,7 +477,14 @@ func (a *App) editorsAndPanel(c *ui.Context, editors func()) {
 
 func (a *App) terminalPanel(c *ui.Context) {
 	tp := &a.term
-	panel := ui.Column(c).Fill().Background(theme.Of(c).Editor) // the split's divider, or the toolbar's border when maximized, is its edge
+	// The split's divider, or the toolbar's border when maximized, is its
+	// edge. GoLand draws the Git log in a tool window's background, where
+	// its splits' dividers show, and the terminal in the editor's.
+	bg := theme.Of(c).Editor
+	if tp.view == panelGitLog {
+		bg = theme.Of(c).Sidebar
+	}
+	panel := ui.Column(c).Fill().Background(bg)
 	panel.Children(func() {
 		if tp.view == panelGitLog {
 			a.gitLogWindow(c)

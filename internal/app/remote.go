@@ -48,7 +48,16 @@ func (a *App) syncRoots() []string {
 // runSyncGit runs op in every root, and done on the UI thread when all
 // succeeded.
 func (a *App) runSyncGit(doing string, done func(), background, refreshFiles bool, op func(context.Context, string) error) {
-	if a.git.busy || a.git.root == "" || (!background && !a.saveNamedFiles()) {
+	if a.git.root == "" || (!background && !a.saveNamedFiles()) {
+		return
+	}
+	if a.git.busy {
+		// A fetch of its own gives way to what the user asks for: it runs
+		// as soon as the fetch ends, and the toolbar says so meanwhile.
+		if !background && a.git.autoFetching && a.git.afterFetch == nil {
+			a.git.syncing, a.git.autoFetching = doing, false
+			a.git.afterFetch = func() { a.runSyncGit(doing, done, false, refreshFiles, op) }
+		}
 		return
 	}
 	a.git.busy, a.git.syncing = true, doing
@@ -81,6 +90,14 @@ func (a *App) runSyncGit(doing string, done func(), background, refreshFiles boo
 			}
 			a.git.busy, a.git.syncing = false, ""
 			a.git.autoFetching = false
+			if next := a.git.afterFetch; next != nil {
+				if err != nil {
+					a.logf("git auto-fetch: %v", err)
+				}
+				a.git.afterFetch = nil
+				next()
+				return
+			}
 			if err != nil {
 				switch {
 				case background:
@@ -183,11 +200,15 @@ func (a *App) viewUpdatedCommits(label string, moved map[string]string) {
 	a.showGitLogPanel()
 }
 
+// gitBlocked is whether a Git job keeps others waiting: a fetch of the
+// app's own does not, as what is asked meanwhile runs after it.
+func (a *App) gitBlocked() bool { return a.git.busy && !a.git.autoFetching }
+
 func (a *App) hasRemote() bool { return len(a.git.remotes) > 0 || len(a.tracked()) > 0 }
 
 func (a *App) reviewUpdate() {
 	tracked := a.tracked()
-	if a.git.busy || len(tracked) == 0 || a.git.choice != nil {
+	if a.gitBlocked() || len(tracked) == 0 || a.git.choice != nil {
 		return
 	}
 	subtitle := a.git.branch + " ← " + a.git.upstream

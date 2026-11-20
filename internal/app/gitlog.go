@@ -110,7 +110,7 @@ func (a *App) logRow(c *ui.Context, v *gitLogWindow, i int, columns logTableColu
 			if len(cm.Refs) > 0 {
 				graph.Children(func() {
 					ui.Box(c).Size(18, 18).Absolute().Left(graphX(cm.Lane)-9).Top((logRowHeight-18)/2).
-						Radius(9).Border(1.5, laneColor(cm.Lane)).Background(theme.Of(c).Editor).Center().Children(func() { a.personAvatar(c, cm.Author, cm.Email, 14) })
+						Radius(9).Border(1.5, laneColor(cm.Lane)).Background(theme.Of(c).Sidebar).Center().Children(func() { a.personAvatar(c, cm.Author, cm.Email, 14) })
 				})
 			}
 		}

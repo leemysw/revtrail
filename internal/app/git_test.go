@@ -14,6 +14,7 @@ import (
 	"github.com/egoist/mygo/ui/editor"
 
 	"revtrail/internal/git"
+	"revtrail/locales"
 )
 
 // gitRepo is a repository of files with one commit on main, and the
@@ -362,6 +363,47 @@ func TestGitAutoFetchUpdatesNavigatorTitleAndLog(t *testing.T) {
 	h.settleLog(h.logTab())
 	if h.a.git.behind != 0 || len(h.logTab().incoming) != 0 || h.tt.HasText("Incoming commits: 2") {
 		t.Fatalf("pull left incoming state: %+v", h.logTab().incoming)
+	}
+}
+
+// Coming to the front fetches in the background; Update Project asked for
+// meanwhile is not greyed out but runs as soon as the fetch ends.
+func TestUpdateProjectDuringAutoFetchRunsAfterIt(t *testing.T) {
+	root := gitRepo(t, map[string]string{"a.go": "package a\n"})
+	bare := t.TempDir()
+	gitRun(t, bare, "init", "-q", "--bare")
+	gitRun(t, root, "remote", "add", "origin", bare)
+	gitRun(t, root, "push", "-qu", "origin", "main")
+	other := t.TempDir()
+	gitRun(t, other, "clone", "-q", "-b", "main", bare, ".")
+	writeFile(t, other, "incoming.go", "package a\n")
+	gitRun(t, other, "add", ".")
+	gitRun(t, other, "commit", "-qm", "incoming work")
+	gitRun(t, other, "push", "-q", "origin", "main")
+
+	h := newHarness(t, root)
+	t.Cleanup(h.a.wsCancel)
+	h.readGit()
+	h.a.git.autoFetch = true
+	h.a.maybeFetchGit(time.Now())
+	if !h.a.git.busy || !h.a.git.autoFetching {
+		t.Fatal("no fetch in the background")
+	}
+	if h.a.gitBlocked() || h.a.blocked(branchItem{name: "Update Project…", run: func() {}, sync: true}) {
+		t.Fatal("Update Project is greyed out during the background fetch")
+	}
+	h.a.reviewUpdate()
+	if h.a.git.choice == nil {
+		t.Fatal("Update Project did not open during the background fetch")
+	}
+	h.a.git.choice.submit("merge")
+	h.a.git.choice = nil
+	if h.a.git.syncing != locales.GitPulling() || !h.a.gitBlocked() {
+		t.Fatalf("toolbar says %q while the update waits", h.a.git.syncing)
+	}
+	h.settle(func() bool { return !h.a.git.busy && !h.a.git.loading })
+	if _, err := os.Stat(filepath.Join(root, "incoming.go")); err != nil {
+		t.Fatalf("the update did not run after the fetch: %v, notice %q", err, h.a.notice)
 	}
 }
 

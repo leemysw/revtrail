@@ -4,6 +4,18 @@ User-facing changes, newest first. Each release has the same notes in English an
 
 ## Unreleased
 
+## [0.1.4] - 2026-11-20
+
+### English
+
+- Update Project and Push no longer grey out while Revtrail fetches in the background, for instance on coming to the front: they run as soon as the fetch ends.
+- The Git log window has a tool window's background, as GoLand's, so the lines between its branches, commits and details show.
+
+### 简体中文
+
+- 后台拉取（例如切回窗口时）期间，更新项目与推送不再置灰：点了之后会在拉取结束后立刻执行。
+- Git 日志窗口改用工具窗口的背景色，与 GoLand 一致，分支、提交与详情之间的分割线清晰可见。
+
 ## [0.1.3] - 2026-11-18
 
 ### English

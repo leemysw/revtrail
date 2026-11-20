@@ -43,6 +43,7 @@ type branchItem struct {
 	run               func() // what choosing it does, closing the popup
 	repo              string
 	common            bool
+	sync              bool // Update and Push, which wait for a fetch of the app's own instead
 	depth             int
 	branch            *git.Branch
 	icon              *ui.SVG
@@ -117,9 +118,9 @@ func (a *App) branchItems() []branchItem {
 			}
 			add(branchItem{name: locales.GitAbort() + " " + op.Label(), run: a.abortGitOp})
 		}
-		add(branchItem{name: locales.BranchUpdate(), icon: glyph.Pull, hint: widget.KeyLabel("Cmd+", "T"), disabled: len(a.tracked()) == 0, run: a.reviewUpdate})
+		add(branchItem{name: locales.BranchUpdate(), icon: glyph.Pull, hint: widget.KeyLabel("Cmd+", "T"), disabled: len(a.tracked()) == 0, run: a.reviewUpdate, sync: true})
 		add(branchItem{name: locales.MsgCommit() + "…", icon: glyph.CommitToolWindow, hint: widget.KeyLabel("Cmd+", "K"), run: a.showCommitNavigator})
-		add(branchItem{name: locales.BranchPush(), icon: glyph.Push, hint: widget.KeyLabel("Shift+Cmd+", "K"), run: a.reviewBranchPush})
+		add(branchItem{name: locales.BranchPush(), icon: glyph.Push, hint: widget.KeyLabel("Shift+Cmd+", "K"), run: a.reviewBranchPush, sync: true})
 		add(branchItem{name: locales.BranchNew(), icon: glyph.Plus, divider: true, hint: widget.KeyLabel("Alt+Cmd+", "N"), run: a.promptNewBranchHere})
 		add(branchItem{name: locales.BranchRevision(), page: "revision", disabled: a.git.head == ""})
 		add(branchItem{name: locales.GitStashChanges(), divider: true, disabled: len(a.git.changes) == 0, run: a.promptStashChanges})
@@ -285,9 +286,13 @@ func (a *App) backBranchPage() {
 
 // blocked: while a git job or fetch runs, the items that act stay greyed,
 // but pages, repositories and groups still open, as IntelliJ's popup does
-// during a fetch.
+// during a fetch; Update and Push wait for a fetch of the app's own.
 func (a *App) blocked(it branchItem) bool {
-	return it.disabled || a.git.busy && (it.run != nil || it.common)
+	busy := a.git.busy
+	if it.sync {
+		busy = a.gitBlocked()
+	}
+	return it.disabled || busy && (it.run != nil || it.common)
 }
 
 func firstChoosable(items []branchItem) int {

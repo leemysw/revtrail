@@ -53,7 +53,7 @@ func (a *App) openPush(preselect string) { a.openBranchPush(preselect, "") }
 // from it: the current branch when "", as IntelliJ's Push… on a branch
 // that is not checked out.
 func (a *App) openBranchPush(preselect, branch string) {
-	if a.git.push != nil || a.git.root == "" || a.git.busy && !a.git.autoFetching {
+	if a.git.push != nil || a.git.root == "" || a.gitBlocked() {
 		return
 	}
 	w := &pushWindow{loading: true, hooks: true, tagMode: "all", split: 56, detailSplit: 67, folders: map[string]bool{}}

@@ -91,6 +91,7 @@ type gitState struct {
 	syncing       string // what talks to the remote now: Fetching, Pulling, Pushing
 	autoFetch     bool
 	autoFetching  bool
+	afterFetch    func() // what the user asked for during autoFetching, run once it ends
 	lastFetch     time.Time
 	// Line totals for each working file relative to HEAD.
 	counts map[string]git.FileStat
@@ -244,7 +245,7 @@ func (a *App) refreshGit() {
 	if a.root == "" || a.wsCtx == nil {
 		return
 	}
-	if a.git.loading || a.git.busy && !a.git.autoFetching {
+	if a.git.loading || a.gitBlocked() {
 		a.git.pending = true
 		return
 	}
