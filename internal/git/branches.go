@@ -270,7 +270,7 @@ func UpdateBranch(ctx context.Context, root string, b Branch, mode string) error
 
 // BranchExtras returns recently checked-out branch names from the reflog and all tags.
 func BranchExtras(ctx context.Context, root string) (recent, tags []string) {
-	out, _ := Command(ctx, root, "reflog", "show", "-n", "200", "--format=%gs", "HEAD")
+	out, _ := Command(ctx, root, "reflog", "show", "-n", "50", "--format=%gs", "HEAD") // IntelliJ's git.recent.checkout.branches.reflog.entries.count
 	for line := range strings.SplitSeq(string(out), "\n") {
 		if msg, ok := strings.CutPrefix(line, "checkout: moving from "); ok {
 			if from, to, ok := strings.Cut(msg, " to "); ok {

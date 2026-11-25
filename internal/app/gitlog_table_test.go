@@ -49,6 +49,11 @@ func TestGitLogTableColumnsFilterAndNavigation(t *testing.T) {
 		t.Fatal(err)
 	}
 	h.tt.Type("side")
+	h.tt.Frame()
+	if v.filter.Text != "" {
+		t.Fatal("the log filtered while typing; IntelliJ filters on Enter")
+	}
+	h.tt.Key(0, ui.KeyEnter)
 	h.settleLog(v)
 	if !h.tt.HasText(logText("gitLogFilteredGraph")) || h.tt.HasText("Graph "+v.commits[0].Short) {
 		t.Fatal("filtered list still presents complete topology")

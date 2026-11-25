@@ -38,7 +38,8 @@
 //   - session.go：保存 / 恢复标签、分屏、diff 标签与固定状态。
 //   - hover.go：悬浮文档、定义预览与 Cmd 悬停链接。
 //   - refactor.go：语言服务器完成的重构与代码操作（Rename、Refactor This、Extract Variable / Method、Inline、Show Context Actions、Optimize Imports、Reformat Code），WorkspaceEdit 落到缓冲与磁盘，代码操作弹窗。
-//   - markdown.go：Markdown 与 SVG 的预览模式切换、Markdown 渲染视图。
+//   - markdown.go：Markdown、SVG 与 HTML 的预览模式切换、Markdown 渲染视图。
+//   - html_preview.go：HTML 文件在网页视图里的预览，保存后重新载入。
 //   - markdown_github.go：预览按 GitHub 显示 HTML 块、带链接的图片行与 details，链接跳转到网页、标题或项目文件。
 //   - markdown_sync.go：「编辑器和预览」两侧的滚动同步。
 //   - image_preview.go：图片预览、复制图片与 SVG 预览。

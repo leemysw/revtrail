@@ -69,9 +69,11 @@ func Blame(ctx context.Context, root, relPath string) ([]BlameLine, error) {
 	return result, nil
 }
 
-// FileHistory returns paginated commits touching relPath, following renames.
+// FileHistory returns paginated commits touching relPath, following
+// renames, with IntelliJ's git.file.history.full: merges that brought the
+// file's changes stay, trivial ones go.
 func FileHistory(ctx context.Context, root, relPath string, skip, n int) ([]Commit, error) {
-	out, err := Command(ctx, root, "log", "-z", logFormat, "--follow", "--skip="+strconv.Itoa(skip), "-n", strconv.Itoa(n), "--", relPath)
+	out, err := Command(ctx, root, "log", "-z", logFormat, "--follow", "--full-history", "--simplify-merges", "--skip="+strconv.Itoa(skip), "-n", strconv.Itoa(n), "--", relPath)
 	if err != nil {
 		return nil, err
 	}

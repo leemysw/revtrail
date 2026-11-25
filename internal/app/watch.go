@@ -1,5 +1,5 @@
 // INPUT: 文件系统事件与 git 忽略规则。
-// OUTPUT: 工作区监听、事件应用、未被监听的目录（git 忽略的）在窗口回到前台时重读，与树的 git 状态。
+// OUTPUT: 工作区监听（含各仓库 .git 的 HEAD、index、refs，按 IntelliJ 不轮询 Git 状态）、事件应用、未被监听的目录（git 忽略的）在窗口回到前台时重读，与树的 git 状态。
 // POS: 磁盘变化进入 App 的入口。
 // PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
 
@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -50,7 +51,7 @@ func (a *App) startWatch() {
 			}
 		})
 		ignore := func(rel string, isDir bool) bool {
-			return isDir && (workspace.IgnoredRel(rel) || ignored.Dir(rel))
+			return isDir && watchIgnored(rel, ignored)
 		}
 		w, err := watchFiles(ctx, root, mygo.FileWatchOptions{Recursive: true, Ignore: ignore})
 		if errors.Is(err, mygo.ErrWatchLimit) {
@@ -177,8 +178,36 @@ func (a *App) unwatched(p string) bool {
 	if err != nil || rel == "." {
 		return false
 	}
-	rel = filepath.ToSlash(rel)
-	return workspace.IgnoredRel(rel) || a.ignored.Dir(rel)
+	return watchIgnored(filepath.ToSlash(rel), a.ignored)
+}
+
+// watchIgnored is whether the watch leaves the folder rel out. Of a
+// repository's .git it keeps what IntelliJ's GitRepositoryUpdater
+// follows: HEAD, the index and the other files at its top, refs and
+// info; objects and logs stay out, as they change with every refresh.
+func watchIgnored(rel string, ignored *git.Ignored) bool {
+	if before, after, ok := strings.Cut(rel+"/", ".git/"); ok && (before == "" || strings.HasSuffix(before, "/")) {
+		before = strings.TrimSuffix(before, "/")
+		if before != "" && (workspace.IgnoredRel(before) || ignored.Dir(before)) {
+			return true
+		}
+		after = strings.TrimSuffix(after, "/")
+		return !(after == "" || after == "info" || after == "refs" || strings.HasPrefix(after, "refs/"))
+	}
+	return workspace.IgnoredRel(rel) || ignored.Dir(rel)
+}
+
+// gitUnwatched is whether a repository's HEAD or index can change with
+// no event: its .git is left out of the watch, or is a file pointing
+// elsewhere, as a worktree's or a submodule's.
+func (a *App) gitUnwatched() bool {
+	for _, r := range a.git.roots {
+		meta := filepath.Join(r, ".git")
+		if fi, err := os.Stat(meta); err != nil || !fi.IsDir() || a.unwatched(meta) {
+			return true
+		}
+	}
+	return len(a.git.roots) == 0
 }
 
 // refreshUnwatched reads again the loaded folders and open documents the

@@ -4,6 +4,26 @@ User-facing changes, newest first. Each release has the same notes in English an
 
 ## Unreleased
 
+## [0.1.5] - 2026-11-25
+
+### English
+
+- HTML files can be previewed beside or instead of the editor, as Markdown and SVG.
+- Folders with several Git repositories work more like IntelliJ: the toolbar shows the branch of the file in the editor, and the log lists every repository's branches.
+- The background fetch no longer blocks other Git actions, and Update Project and Fetch handle all repositories at once.
+- Git keeps IntelliJ's pace: incoming commits are checked every 20 minutes, and status follows changes in .git instead of being re-read every few seconds.
+- The log's text filter applies on Enter and highlights matches, file history keeps merges, and repositories in hidden or vendor folders are no longer picked up.
+- File names in the commit panel and the log's filter field stay readable when space is short.
+
+### 简体中文
+
+- HTML 文件可以像 Markdown、SVG 一样在编辑器旁或单独预览。
+- 包含多个 Git 仓库的文件夹更接近 IntelliJ：工具栏显示编辑器中文件所在仓库的分支，日志列出所有仓库的分支。
+- 后台拉取不再阻塞其他 Git 操作，更新项目与获取同时处理所有仓库。
+- Git 的节奏与 IntelliJ 一致：每 20 分钟检查一次新提交，状态跟随 .git 的变化更新，不再每隔几秒重读。
+- 日志的文本筛选按回车生效并高亮匹配，文件历史保留合并提交，隐藏文件夹与 vendor 中的仓库不再被识别。
+- 空间不足时，提交面板中的文件名与日志的筛选输入框仍保持可读。
+
 ## [0.1.4] - 2026-11-20
 
 ### English

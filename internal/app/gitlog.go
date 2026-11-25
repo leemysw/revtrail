@@ -1,5 +1,5 @@
 // INPUT: 提交列表与列宽。
-// OUTPUT: 日志表格的列定义与行绘制（按 IntelliJ：无表头、24pt 行、圆角选中、合并提交置灰）；分支 / 标签按 IntelliJ 的标签图标与灰字靠右画在提交信息列内（refLabels、refLabel）。
+// OUTPUT: 日志表格的列定义与行绘制（按 IntelliJ：无表头、24pt 行、圆角选中、合并提交置灰、文本筛选的匹配加粗）；分支 / 标签按 IntelliJ 的标签图标与灰字靠右画在提交信息列内（refLabels、refLabel）。
 // POS: 日志表格的公共绘制件。
 // PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
 
@@ -7,6 +7,7 @@ package app
 
 import (
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -17,6 +18,7 @@ import (
 	"revtrail/internal/git"
 	"revtrail/internal/glyph"
 	"revtrail/internal/theme"
+	"revtrail/internal/widget"
 	"revtrail/locales"
 )
 
@@ -115,7 +117,14 @@ func (a *App) logRow(c *ui.Context, v *gitLogWindow, i int, columns logTableColu
 			}
 		}
 		ui.Row(c).Grow(1).Shrink(1).Basis(0).Gap(5).AlignItems(ui.Center).Children(func() {
-			ui.Text(c, cm.Subject).TextColor(text).SingleLine().Ellipsis("…").Shrink(1)
+			if hits := logMatches(cm.Subject, v.loaded); len(hits) > 0 {
+				// IntelliJ's vcs.log.filter.text.highlight.matches.
+				ui.Row(c).MinWidth(0).Shrink(1).Clip().Children(func() {
+					widget.HighlightTextStyle(c, cm.Subject, hits, 0, 13, text)
+				})
+			} else {
+				ui.Text(c, cm.Subject).TextColor(text).SingleLine().Ellipsis("…").Shrink(1)
+			}
 			if v.outgoing[cm.Hash] {
 				ui.Text(c, "↑").Bold().TextColor(c.Theme().Accent).Shrink(0).Tooltip(locales.MsgNotPushedYet())
 			}
@@ -211,4 +220,31 @@ func refNames(label string) []string {
 		return []string{local, remote + "/" + local}
 	}
 	return []string{label}
+}
+
+// logMatches are the byte offsets of the characters in s the log's text
+// filter f matched, as widget.HighlightText takes them.
+func logMatches(s string, f git.LogFilter) []int {
+	query := strings.TrimSpace(f.Text)
+	if query == "" {
+		return nil
+	}
+	expr := query
+	if !f.Regexp {
+		expr = regexp.QuoteMeta(query)
+	}
+	if !f.CaseSensitive {
+		expr = "(?i)" + expr
+	}
+	re, err := regexp.Compile(expr)
+	if err != nil {
+		return nil
+	}
+	var hits []int
+	for _, m := range re.FindAllStringIndex(s, -1) {
+		for i := range s[m[0]:m[1]] {
+			hits = append(hits, m[0]+i)
+		}
+	}
+	return hits
 }

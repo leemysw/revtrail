@@ -132,6 +132,18 @@ func (a *App) selectRepository(root string) {
 	a.refreshGit()
 }
 
+// editorRepository is the repository of the file in the editor, as
+// IntelliJ's toolbar Git widget shows in a workspace of several; else the
+// current one.
+func (a *App) editorRepository() string {
+	if len(a.git.roots) > 1 && a.focus != nil && a.docs[a.focus.active] != nil {
+		if root, _ := a.treeGitStatus(a.focus.active); root != "" && slices.Contains(a.git.roots, root) {
+			return root
+		}
+	}
+	return a.git.root
+}
+
 type gitPeek struct {
 	index    int
 	version  uint64
@@ -224,7 +236,9 @@ func (a *App) startGit() {
 				return
 			case <-t.C:
 				a.post.Post(func() {
-					if a.gen == gen && !a.background {
+					// IntelliJ polls nothing: the watch brings HEAD, the
+					// index and refs. Only what it cannot see is read again.
+					if a.gen == gen && !a.background && a.gitUnwatched() {
 						a.refreshGit()
 					}
 				})
@@ -245,7 +259,7 @@ func (a *App) refreshGit() {
 	if a.root == "" || a.wsCtx == nil {
 		return
 	}
-	if a.git.loading || a.gitBlocked() {
+	if a.git.loading || a.git.busy {
 		a.git.pending = true
 		return
 	}
@@ -968,10 +982,11 @@ func (a *App) gitRow(c *ui.Context, ch git.Change, depth int, parent string) {
 		row.Children(func() {
 			ui.Row(c).FillWidth().Gap(6).AlignItems(ui.Center).Children(func() {
 				glyph.File(c, filepath.Base(ch.Path), 15)
-				ui.Text(c, filepath.Base(ch.Path)).TextColor(nameColor).SingleLine().Shrink(1)
+				ui.Text(c, filepath.Base(ch.Path)).TextColor(nameColor).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 				dir := filepath.Dir(ch.Path)
 				if dir != "." && !a.git.groupByDirectory {
-					ui.Text(c, filepath.ToSlash(dir)).TextColor(theme.Of(c).Dim).SingleLine().Shrink(1)
+					// The folder gives way before the name, as IntelliJ's.
+					ui.Text(c, filepath.ToSlash(dir)).TextColor(theme.Of(c).Dim).SingleLine().Ellipsis("…").MinWidth(0).Basis(0).Grow(1)
 				}
 			})
 		})

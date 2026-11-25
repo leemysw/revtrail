@@ -43,7 +43,7 @@ func gitRepo(t *testing.T, files map[string]string, branches ...string) string {
 func (h *harness) readGit() {
 	h.t.Helper()
 	h.a.refreshGit()
-	h.settle(func() bool { return !h.a.git.loading && !h.a.git.busy })
+	h.settle(func() bool { return !h.a.git.loading && !h.a.git.busy && !h.a.git.autoFetching })
 }
 
 func TestGitRangeSelectionAndCommitInclusion(t *testing.T) {
@@ -386,10 +386,10 @@ func TestUpdateProjectDuringAutoFetchRunsAfterIt(t *testing.T) {
 	h.readGit()
 	h.a.git.autoFetch = true
 	h.a.maybeFetchGit(time.Now())
-	if !h.a.git.busy || !h.a.git.autoFetching {
-		t.Fatal("no fetch in the background")
+	if h.a.git.busy || !h.a.git.autoFetching {
+		t.Fatal("the background fetch keeps other Git actions waiting")
 	}
-	if h.a.gitBlocked() || h.a.blocked(branchItem{name: "Update Project…", run: func() {}, sync: true}) {
+	if h.a.blocked(branchItem{name: "Update Project…", run: func() {}, sync: true}) {
 		t.Fatal("Update Project is greyed out during the background fetch")
 	}
 	h.a.reviewUpdate()
@@ -398,7 +398,7 @@ func TestUpdateProjectDuringAutoFetchRunsAfterIt(t *testing.T) {
 	}
 	h.a.git.choice.submit("merge")
 	h.a.git.choice = nil
-	if h.a.git.syncing != locales.GitPulling() || !h.a.gitBlocked() {
+	if h.a.git.syncing != locales.GitPulling() || !h.a.git.busy {
 		t.Fatalf("toolbar says %q while the update waits", h.a.git.syncing)
 	}
 	h.settle(func() bool { return !h.a.git.busy && !h.a.git.loading })

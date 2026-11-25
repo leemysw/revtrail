@@ -1,7 +1,7 @@
 {
   "name": "Revtrail",
   "identifier": "io.github.leemysw.revtrail",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "out": "build",
   "updates": {
     "publicKey": "fnU53awlApOLA6EosoTqIpIQ08Kd1MWtRFRX2ITqKBI=",

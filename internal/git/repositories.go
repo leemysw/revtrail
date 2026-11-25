@@ -17,7 +17,8 @@ import (
 )
 
 // Roots includes the enclosing worktree as well as nested repositories. A .git
-// file is a marker too (submodules and linked worktrees).
+// file is a marker too (submodules and linked worktrees). Hidden folders
+// and vendor are not searched, as IntelliJ's root detector.
 func Roots(ctx context.Context, dir string) []string {
 	if resolved, err := filepath.EvalSymlinks(dir); err == nil {
 		dir = resolved
@@ -44,7 +45,9 @@ func Roots(ctx context.Context, dir string) []string {
 				return fs.SkipDir
 			}
 		}
-		if path != dir && d.IsDir() && workspace.Ignored(d.Name()) {
+		// IntelliJ's vcs.root.detector.ignore.pattern, [.].*|vendor: no
+		// repository is looked for in hidden folders or vendor.
+		if path != dir && d.IsDir() && (workspace.Ignored(d.Name()) || strings.HasPrefix(d.Name(), ".") || d.Name() == "vendor") {
 			return fs.SkipDir
 		}
 		return nil

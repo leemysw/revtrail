@@ -290,7 +290,7 @@ func (a *App) backBranchPage() {
 func (a *App) blocked(it branchItem) bool {
 	busy := a.git.busy
 	if it.sync {
-		busy = a.gitBlocked()
+		busy = a.git.busy
 	}
 	return it.disabled || busy && (it.run != nil || it.common)
 }
@@ -403,11 +403,20 @@ func eachRoot(roots []string, labels map[string]string, op func(string) error) e
 
 // branchButton opens the branch picker beside the project name.
 func (a *App) branchButton(c *ui.Context) {
-	if a.git.branch == "" {
+	root, branch := a.git.root, a.git.branch
+	if r := a.editorRepository(); r != root {
+		if b := a.git.repositories[r].branch; b != "" {
+			root, branch = r, b
+		}
+	} else if branch == "" && a.git.requestedRoot != "" {
+		// While another repository becomes current, its branch shows at once.
+		root, branch = a.git.requestedRoot, a.git.repositories[a.git.requestedRoot].branch
+	}
+	if branch == "" {
 		return
 	}
 	a.git.picker.anchor = a.branchHandle.Bounds(c)
-	b := titleMenuButton(c, locales.MsgSwitchBranch(), locales.MsgSwitchBranch2()+a.git.branch, a.git.picker.open).Bind(&a.branchHandle)
+	b := titleMenuButton(c, locales.MsgSwitchBranch(), locales.MsgSwitchBranch2()+branch, a.git.picker.open).Bind(&a.branchHandle)
 	b.OnClick(func() {
 		if a.git.picker.open {
 			a.git.picker.open = false
@@ -417,9 +426,9 @@ func (a *App) branchButton(c *ui.Context) {
 	})
 	b.Children(func() {
 		glyph.Draw(c, glyph.Git, 16, theme.Of(c).Muted)
-		label := a.git.branch
+		label := branch
 		if len(a.git.roots) > 1 && a.commonBranch() == "" {
-			label = a.repoLabel(a.git.root) + " · " + label
+			label = a.repoLabel(root) + " · " + label
 		}
 		ui.Text(c, label).FontSize(toolbarFontSize).TextColor(theme.Of(c).Muted).SingleLine().Ellipsis("…").MinWidth(0).Shrink(1)
 		// IntelliJ's incoming and outgoing marks, without counts.

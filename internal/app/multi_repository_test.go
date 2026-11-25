@@ -220,6 +220,42 @@ func TestWorkingDiffBlockActions(t *testing.T) {
 // IntelliJ's commit view lists every root's changes, grouped by root; one
 // commit makes a commit in each, and Update Project pulls every root that
 // tracks a branch.
+// In a folder of several repositories, as IntelliJ: the toolbar's branch
+// is the repository's of the file in the editor, and the log's branches
+// panel has every repository's branches.
+func TestMultiRepositoryFollowsEditorAndListsAllBranches(t *testing.T) {
+	parent, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"alpha", "bravo"} {
+		r := filepath.Join(parent, name)
+		gitRun(t, parent, "init", "-qb", "main", r)
+		writeFile(t, r, name+".txt", name)
+		gitRun(t, r, "add", ".")
+		gitRun(t, r, "-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-qm", "base")
+	}
+	gitRun(t, filepath.Join(parent, "bravo"), "switch", "-qc", "bravo-only")
+	h := newHarness(t, parent)
+	t.Cleanup(h.a.wsCancel)
+	h.readGit()
+	if h.a.git.root != filepath.Join(parent, "alpha") {
+		t.Fatalf("current %q", h.a.git.root)
+	}
+	h.open(filepath.Join("bravo", "bravo.txt"))
+	h.tt.Frame()
+	if !h.tt.HasText("bravo · bravo-only") || h.a.git.root != filepath.Join(parent, "alpha") {
+		t.Fatalf("toolbar did not follow the editor: %q %q", h.a.git.root, h.tt.Texts())
+	}
+	h.a.openGitLog()
+	lw := h.logTab()
+	h.settleLog(lw)
+	h.settle(func() bool {
+		h.tt.Frame()
+		return lw.refTips["refs/heads/main"] != "" && lw.refTips["refs/heads/bravo-only"] != ""
+	})
+}
+
 func TestMultiRepositoryCommitAndUpdate(t *testing.T) {
 	ctx := context.Background()
 	parent, err := filepath.EvalSymlinks(t.TempDir())

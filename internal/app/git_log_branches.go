@@ -247,7 +247,7 @@ func (a *App) logWindowBranches(c *ui.Context, v *gitLogWindow) {
 		a.logBranchActions(c, v)
 		ui.Column(c).Grow(1).Basis(0).FillHeight().Clip().Children(func() {
 			ui.Row(c).FillWidth().Height(editorTabBarHeight).Padding(0, 6, 0, 0).AlignItems(ui.Center).Children(func() {
-				logSearchField(c, &v.refQuery, locales.GitWindowRefs(), locales.GitWindowRefs(), nil).Grow(1)
+				logSearchField(c, &v.refQuery, locales.GitWindowRefs(), locales.GitWindowRefs(), nil, nil).Grow(1)
 			})
 			query := strings.ToLower(strings.TrimSpace(v.refQuery))
 			folded := func(key string) bool {
@@ -382,13 +382,18 @@ func (a *App) refIconColor(c *ui.Context, ref string) ui.Color {
 
 // logSearchField is IntelliJ's search field: a magnifier, the text, and
 // what trailing draws at its end, as the log's .* and Cc.
-func logSearchField(c *ui.Context, value *string, label, placeholder string, trailing func()) ui.Element {
+// logSearchField is a log's search field; with submit, as IntelliJ's text
+// filter (vcs.log.filter.text.on.the.fly off), Enter applies what it has.
+func logSearchField(c *ui.Context, value *string, label, placeholder string, submit, trailing func()) ui.Element {
 	pal := theme.Of(c)
 	field := ui.Row(c).Height(26).MinWidth(0).Padding(0, 3, 0, 6).Gap(4).AlignItems(ui.Center).Radius(4).Border(1, pal.Separator).Background(pal.Editor)
 	field.Children(func() {
 		glyph.Draw(c, glyph.Search, 16, pal.Muted)
-		ui.TextInput(c, value).Grow(1).Basis(0).MinWidth(0).Height(24).Padding(0, 2).Background(ui.Transparent).BorderWidth(0).
+		in := ui.TextInput(c, value).Grow(1).Basis(0).MinWidth(0).Height(24).Padding(0, 2).Background(ui.Transparent).BorderWidth(0).
 			FontSize(widget.FontSize(c, 13)).Label(label).Placeholder(placeholder)
+		if submit != nil {
+			in.OnSubmit(submit)
+		}
 		if trailing != nil {
 			trailing()
 		}

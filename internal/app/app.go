@@ -191,6 +191,7 @@ type doc struct {
 	svgCached  bool
 	hex        *hexState
 	preview    *markdownPreview
+	html       *htmlView // the HTML preview's web view
 
 	loading     bool
 	err         error

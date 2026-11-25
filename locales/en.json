@@ -1097,5 +1097,7 @@
   "refactorAlreadyFormatted": "No lines changed: code is already properly formatted.",
   "refactorReformatted": "Reformatted the file.",
   "refactorOutsideProject": "The refactoring would change a file outside the project: %s",
-  "refactorExists": "%s already exists."
+  "refactorExists": "%s already exists.",
+  "htmlPreview": "HTML preview",
+  "htmlPreviewUnavailable": "The preview cannot show here"
 }

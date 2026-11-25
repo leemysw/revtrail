@@ -1,5 +1,5 @@
 // INPUT: git 的 fetch / pull / 更新摘要。
-// OUTPUT: 同步、Update Project、拉取后的通知与跳转到日志。
+// OUTPUT: 同步（各仓库并行，后台拉取不占用 Git、每 20 分钟一次，按 IntelliJ）、Update Project、拉取后的通知与跳转到日志。
 // POS: 与远端同步的界面层。
 // PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
 
@@ -9,7 +9,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"slices"
+	"sync"
 	"time"
 
 	"revtrail/internal/git"
@@ -26,10 +28,11 @@ func (a *App) syncGit(doing, done string, refreshFiles bool, op func(context.Con
 	a.runSyncGit(doing, func() { a.note(done, false) }, false, refreshFiles, op)
 }
 
-const gitFetchInterval = 2 * time.Minute
+// gitFetchInterval is IntelliJ's git.update.incoming.info.time.
+const gitFetchInterval = 20 * time.Minute
 
 func (a *App) maybeFetchGit(now time.Time) {
-	if !a.git.autoFetch || a.git.busy || a.git.loading || !a.hasRemote() ||
+	if !a.git.autoFetch || a.git.busy || a.git.autoFetching || a.git.loading || !a.hasRemote() ||
 		!a.git.lastFetch.IsZero() && now.Sub(a.git.lastFetch) < gitFetchInterval {
 		return
 	}
@@ -51,17 +54,24 @@ func (a *App) runSyncGit(doing string, done func(), background, refreshFiles boo
 	if a.git.root == "" || (!background && !a.saveNamedFiles()) {
 		return
 	}
-	if a.git.busy {
-		// A fetch of its own gives way to what the user asks for: it runs
-		// as soon as the fetch ends, and the toolbar says so meanwhile.
-		if !background && a.git.autoFetching && a.git.afterFetch == nil {
-			a.git.syncing, a.git.autoFetching = doing, false
-			a.git.afterFetch = func() { a.runSyncGit(doing, done, false, refreshFiles, op) }
-		}
+	if a.git.busy || background && a.git.autoFetching {
 		return
 	}
-	a.git.busy, a.git.syncing = true, doing
-	a.git.autoFetching = background
+	if a.git.autoFetching {
+		// Two jobs on a remote would race for its refs: what the user asks
+		// for runs as soon as the background fetch ends, and the toolbar
+		// says so meanwhile.
+		a.git.busy, a.git.syncing = true, doing
+		a.git.afterFetch = func() { a.runSyncGit(doing, done, false, refreshFiles, op) }
+		return
+	}
+	// As IntelliJ's background tasks, a fetch of the app's own keeps no
+	// other Git action waiting.
+	if background {
+		a.git.autoFetching = true
+	} else {
+		a.git.busy, a.git.syncing = true, doing
+	}
 	a.git.lastFetch = time.Now()
 	ctx, roots, gen := a.wsCtx, a.syncRoots(), a.gen
 	labels := make([]string, len(roots))
@@ -74,34 +84,46 @@ func (a *App) runSyncGit(doing string, done func(), background, refreshFiles boo
 			ctx, cancel = context.WithTimeout(ctx, 30*time.Second)
 			defer cancel()
 		}
-		var errs []error
+		// As IntelliJ's (git.parallel.fetch.threads), the repositories go
+		// at once, at most twice the cores and ten, ssh's sessions.
+		errs := make([]error, len(roots))
+		slots := make(chan struct{}, min(2*runtime.NumCPU(), 10))
+		var wg sync.WaitGroup
 		for i, root := range roots {
-			if err := op(ctx, root); err != nil {
-				if len(roots) > 1 {
-					err = fmt.Errorf("%s: %w", labels[i], err)
+			wg.Go(func() {
+				slots <- struct{}{}
+				defer func() { <-slots }()
+				if err := op(ctx, root); err != nil {
+					if len(roots) > 1 {
+						err = fmt.Errorf("%s: %w", labels[i], err)
+					}
+					errs[i] = err
 				}
-				errs = append(errs, err)
-			}
+			})
 		}
+		wg.Wait()
 		err := errors.Join(errs...)
 		a.post.Post(func() {
 			if a.gen != gen {
 				return
 			}
-			a.git.busy, a.git.syncing = false, ""
-			a.git.autoFetching = false
-			if next := a.git.afterFetch; next != nil {
+			if background {
+				a.git.autoFetching = false
 				if err != nil {
 					a.logf("git auto-fetch: %v", err)
 				}
-				a.git.afterFetch = nil
-				next()
+				if next := a.git.afterFetch; next != nil {
+					a.git.afterFetch = nil
+					a.git.busy, a.git.syncing = false, ""
+					next()
+					return
+				}
+				a.refreshGit()
 				return
 			}
+			a.git.busy, a.git.syncing = false, ""
 			if err != nil {
 				switch {
-				case background:
-					a.logf("git auto-fetch: %v", err)
 				case errors.Is(err, git.ErrConflict):
 					a.note(locales.GitStoppedConflicts(), true)
 					if refreshFiles && !a.watching {
@@ -112,9 +134,7 @@ func (a *App) runSyncGit(doing string, done func(), background, refreshFiles boo
 					a.note(locales.MsgGit()+gitErrLine(err), true)
 				}
 			} else {
-				if !background {
-					done()
-				}
+				done()
 				if refreshFiles && !a.watching {
 					a.refreshAll()
 				}
@@ -164,6 +184,7 @@ func (a *App) gitPullWithMode(mode string) {
 	// and read once it has posted.
 	moved := map[string]string{}
 	var commits, files int
+	var mu sync.Mutex // the repositories pull at once
 	a.runSyncGit(locales.GitPulling(), func() { a.noteUpdate(moved, commits, files) }, false, true, func(ctx context.Context, root string) error {
 		if !slices.Contains(tracked, root) {
 			return nil
@@ -174,6 +195,8 @@ func (a *App) gitPullWithMode(mode string) {
 		}
 		if head := git.Head(ctx, root); head != old && old != "" {
 			n, f := git.UpdateSummary(ctx, root, old, head)
+			mu.Lock()
+			defer mu.Unlock()
 			moved[root] = old + ".." + head
 			commits, files = commits+n, files+f
 		}
@@ -200,15 +223,11 @@ func (a *App) viewUpdatedCommits(label string, moved map[string]string) {
 	a.showGitLogPanel()
 }
 
-// gitBlocked is whether a Git job keeps others waiting: a fetch of the
-// app's own does not, as what is asked meanwhile runs after it.
-func (a *App) gitBlocked() bool { return a.git.busy && !a.git.autoFetching }
-
 func (a *App) hasRemote() bool { return len(a.git.remotes) > 0 || len(a.tracked()) > 0 }
 
 func (a *App) reviewUpdate() {
 	tracked := a.tracked()
-	if a.gitBlocked() || len(tracked) == 0 || a.git.choice != nil {
+	if a.git.busy || len(tracked) == 0 || a.git.choice != nil {
 		return
 	}
 	subtitle := a.git.branch + " ← " + a.git.upstream

@@ -1097,5 +1097,7 @@
   "refactorAlreadyFormatted": "没有更改任何行：代码格式已正确。",
   "refactorReformatted": "已重新格式化文件。",
   "refactorOutsideProject": "重构会修改项目之外的文件：%s",
-  "refactorExists": "%s 已存在。"
+  "refactorExists": "%s 已存在。",
+  "htmlPreview": "HTML 预览",
+  "htmlPreviewUnavailable": "此处无法显示预览"
 }

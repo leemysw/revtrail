@@ -319,6 +319,7 @@ func (a *App) releaseIfUnused(path string) {
 		a.removeRecovery(d)
 	}
 	d.seq++ // drop a load on its way
+	d.closeHTMLPreview()
 	if m := a.serverFor(d.path); m != nil {
 		m.Close(d.uri)
 	}

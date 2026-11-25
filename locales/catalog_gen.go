@@ -11087,3 +11087,23 @@ func RefactorExists() string { return In(i18n.Locale()).RefactorExists() }
 func (msgs Messages) RefactorExists() string {
 	return Catalog.Format(msgs.locale, "refactorExists", nil)
 }
+
+// HtmlPreview says "HTML preview"
+// in the language the app shows.
+func HtmlPreview() string { return In(i18n.Locale()).HtmlPreview() }
+
+// HtmlPreview says "HTML preview"
+// in the language of msgs.
+func (msgs Messages) HtmlPreview() string {
+	return Catalog.Format(msgs.locale, "htmlPreview", nil)
+}
+
+// HtmlPreviewUnavailable says "The preview cannot show here"
+// in the language the app shows.
+func HtmlPreviewUnavailable() string { return In(i18n.Locale()).HtmlPreviewUnavailable() }
+
+// HtmlPreviewUnavailable says "The preview cannot show here"
+// in the language of msgs.
+func (msgs Messages) HtmlPreviewUnavailable() string {
+	return Catalog.Format(msgs.locale, "htmlPreviewUnavailable", nil)
+}

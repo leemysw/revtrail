@@ -1,6 +1,6 @@
-// INPUT: Markdown / SVG 文件与 mygo markdown 渲染。
+// INPUT: Markdown / SVG / HTML 文件与 mygo markdown 渲染。
 // OUTPUT: 预览模式（仅编辑器 / 编辑器和预览 / 仅预览）切换、hasPreview、预览的选项（图片、链接、GitHub HTML）与 Markdown 渲染视图。
-// POS: Markdown 与 SVG 标签页的预览。
+// POS: Markdown、SVG 与 HTML 标签页的预览（HTML 的视图在 html_preview.go）。
 // PROTOCOL: 变更时更新此头部，然后检查本包 doc.go
 
 package app
@@ -77,9 +77,9 @@ func isMarkdown(path string) bool {
 }
 
 // hasPreview reports whether a file's editor offers IntelliJ's Editor
-// Only, Editor and Preview and Preview Only: Markdown and SVG files.
+// Only, Editor and Preview and Preview Only: Markdown, SVG and HTML files.
 func hasPreview(path string) bool {
-	return isMarkdown(path) || strings.EqualFold(filepath.Ext(path), ".svg")
+	return isMarkdown(path) || strings.EqualFold(filepath.Ext(path), ".svg") || isHTML(path)
 }
 
 type markdownMode uint8
@@ -109,7 +109,11 @@ func (a *App) setMarkdownMode(g *group, mode markdownMode) {
 }
 
 func (a *App) markdownView(c *ui.Context, g *group, d *doc) {
-	if !isMarkdown(d.path) {
+	switch {
+	case isHTML(d.path):
+		a.htmlPreview(c, g, d)
+		return
+	case !isMarkdown(d.path):
 		a.svgPreview(c, g, d)
 		return
 	}

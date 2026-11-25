@@ -47,6 +47,7 @@ type gitLogWindow struct {
 	scope, loadedScope        logScope
 	skips                     map[string]int // the commits read of each repository
 	refQuery                  string
+	textDraft, textShown      string // the text filter's field, and the filter it last showed
 	refs                      []string
 	refTips                   map[string]string     // full ref → its commit
 	branchInfo                map[string]git.Branch // local branch's full ref → it, for Update Selected
@@ -205,23 +206,32 @@ func (a *App) gitLogBody(c *ui.Context, v *gitLogWindow) {
 			}()
 		}
 		v.refs, v.refTips = nil, map[string]string{}
-		found := v.filter.Ref == "" || v.filter.Ref == "HEAD"
-		for line := range strings.SplitSeq(src.refs, "\n") {
-			fields := strings.Split(line, "\x00")
-			if len(fields) != 3 || fields[2] != "" {
-				continue
-			}
-			v.refs = append(v.refs, fields[0])
-			v.refTips[fields[0]] = fields[1]
-			if fields[0] == v.filter.Ref {
-				found = true
-			}
-		}
-		if !found {
-			v.filter.Ref = ""
-		}
-		if v.refSel == "" || v.refSel != "HEAD" && v.refTips[v.refSel] == "" {
-			v.refSel = v.filter.Ref
+		v.addRefs(src.refs)
+		if len(a.git.roots) > 1 {
+			// As IntelliJ's, the branches of every repository, each name
+			// once: choosing one shows it in the repositories that have it.
+			gen, ctx, roots := a.gen, a.wsCtx, a.git.roots
+			go func() {
+				var others []string
+				for _, r := range roots {
+					if r != src.root {
+						if refs, err := git.Refs(ctx, r); err == nil {
+							others = append(others, refs)
+						}
+					}
+				}
+				a.post.Post(func() {
+					if a.gen != gen || v.source != src {
+						return
+					}
+					for _, refs := range others {
+						v.addRefs(refs)
+					}
+					v.keepRefSelection()
+				})
+			}()
+		} else {
+			v.keepRefSelection()
 		}
 		if v.showMine {
 			a.loadMyBranches(v)
@@ -267,7 +277,7 @@ func (a *App) loadWindowLog(v *gitLogWindow, reset bool) {
 		if v.cancel != nil {
 			v.cancel()
 		}
-		delay = v.loaded.Text != v.filter.Text || v.loaded.Author != v.filter.Author
+		delay = v.loaded.Author != v.filter.Author
 		v.restoreHash = ""
 		if v.loaded == v.filter && v.loadedScope == v.scope && v.detail != nil {
 			v.restoreHash = v.detail.commit.Hash
@@ -422,6 +432,32 @@ func mergedLog(ctx context.Context, roots []string, ranges map[string]string, fi
 	return commits, done, nil
 }
 
+// addRefs adds the refs git.Refs read that the log has not yet, with
+// their tips: the first repository's where several have one.
+func (v *gitLogWindow) addRefs(refs string) {
+	for line := range strings.SplitSeq(refs, "\n") {
+		fields := strings.Split(line, "\x00")
+		if len(fields) != 3 || fields[2] != "" {
+			continue
+		}
+		if _, ok := v.refTips[fields[0]]; !ok {
+			v.refs = append(v.refs, fields[0])
+			v.refTips[fields[0]] = fields[1]
+		}
+	}
+}
+
+// keepRefSelection drops the branch filter and selection once no
+// repository has their branch.
+func (v *gitLogWindow) keepRefSelection() {
+	if v.filter.Ref != "" && v.filter.Ref != "HEAD" && v.refTips[v.filter.Ref] == "" {
+		v.filter.Ref = ""
+	}
+	if v.refSel == "" || v.refSel != "HEAD" && v.refTips[v.refSel] == "" {
+		v.refSel = v.filter.Ref
+	}
+}
+
 func logWindowHint(c *ui.Context, msg string) {
 	ui.Column(c).Fill().Center().Children(func() { ui.Text(c, msg).TextColor(theme.Of(c).Muted).SingleLine().Shrink(1).Tooltip(msg) })
 }
@@ -530,15 +566,30 @@ func (a *App) logWindowCommits(c *ui.Context, v *gitLogWindow) {
 // Where it is narrow the filters fold into one menu.
 func (a *App) logToolbar(c *ui.Context, v *gitLogWindow, width float32) {
 	ui.Row(c).Height(editorTabBarHeight).FillWidth().Padding(0, 6).Gap(2).AlignItems(ui.Center).Clip().Children(func() {
-		logSearchField(c, &v.filter.Text, locales.MsgFilterCommits(), locales.GitWindowQuery(), func() {
+		// The field holds what is typed; Enter applies it, and emptying it
+		// clears the filter at once.
+		if v.filter.Text != v.textShown {
+			v.textDraft, v.textShown = v.filter.Text, v.filter.Text
+		}
+		if v.textDraft == "" && v.filter.Text != "" {
+			v.filter.Text, v.textShown = "", ""
+		}
+		logSearchField(c, &v.textDraft, locales.MsgFilterCommits(), locales.GitWindowQuery(), func() {
+			v.filter.Text, v.textShown = v.textDraft, v.textDraft
+		}, func() {
 			if filterOption(c, ".*", locales.MsgRegularExpression(), v.filter.Regexp).Clicked() {
 				v.filter.Regexp = !v.filter.Regexp
 			}
 			if filterOption(c, "Cc", locales.MsgMatchCase(), v.filter.CaseSensitive).Clicked() {
 				v.filter.CaseSensitive = !v.filter.CaseSensitive
 			}
-		}).Grow(1).Basis(0).MaxWidth(300).Margin(0, 4, 0, 0)
-		if width > 0 && width < 640 {
+		}).Grow(1).Basis(0).MinWidth(150).MaxWidth(300).Margin(0, 4, 0, 0)
+		// The filters fold into one menu before they squeeze the field.
+		fold := float32(600)
+		if len(a.git.roots) > 1 {
+			fold += 110 // Repositories
+		}
+		if width > 0 && width < fold {
 			active := v.filter.Ref != "" || v.filter.Since != "" || v.filter.Author != "" || v.filter.Paths != "" || v.scope.repo != ""
 			logFilterButton(c, locales.MsgFilters(), active).Menu(func(m *ui.Menu) {
 				m.Submenu(locales.GitWindowBranchFilter(), v.branchMenu)

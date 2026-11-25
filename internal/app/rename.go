@@ -126,6 +126,7 @@ func (a *App) renamed(old, dst string) {
 		d.path, d.uri, d.name = next, uriOf(next), filepath.Base(next)
 		d.gone = false
 		d.markdownOptions, d.preview = nil, nil
+		d.closeHTMLPreview()
 		d.hex = nil
 		if d.buf != nil {
 			d.buf.SetLanguage(syntax.For(d.name))
